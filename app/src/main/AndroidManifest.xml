@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Android Automotive OS (Pleos Connect) 전용 앱 -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- 클라우드 추론 LLM 서버 통신 (TLS 1.2+) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- AAOS Car API: 표준 차량 데이터 (속도·기어·외기온·주행가능거리·충전 속도) -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <uses-permission android:name="android.car.permission.CAR_EXTERIOR_ENVIRONMENT" />
+    <uses-permission android:name="android.car.permission.CAR_ENERGY" />
+
+    <!-- Pleos Vehicle SDK (읽기 · 제어) — 앱 기능에 필요한 최소 권한만 선언 -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+    <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
+    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
+    <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+
+    <!-- Pleos NaviHelper SDK -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />
+
+    <!-- Pleos SpeechToText / TextToSpeech SDK (온디바이스 모드) -->
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+
+    <!-- Pleos FusedLocation SDK (dangerous → 런타임 요청) -->
+    <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
+
+    <application
+        android:name=".YeopjariApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Yeopjari">
+
+        <!-- 회전 컨트롤러(CCP) 미지원 선언: 모든 기능은 터치·음성으로 사용 가능 -->
+        <meta-data android:name="com.hmg.rotary.ROTARY_SUPPORTED" android:value="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            <!-- 주행 중 사용 가능 (주의분산 최적화) — 화면 내부는 CarUxRestrictions 에 따라 간소화 -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Gleo Interface (App Schema) — component: activity -->
+            <intent-filter>
+                <action android:name="PLAN_EV_TRIP" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="DIAGNOSE_VEHICLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Gleo Interface (App Schema) — component: service (UI 없이 백그라운드 실행) -->
+        <receiver
+            android:name=".platform.gleo.GleoActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="START_CARE_MODE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

@@ -1,0 +1,55 @@
+{
+  "packageName": "com.yeopjari.app",
+  "appDescription": "An in-car AI co-pilot that plans EV charging and rest stops, keeps the parked cabin safe for pets and resting passengers, and explains vehicle warnings using live vehicle data.",
+  "invokeWord": "옆자리",
+  "version": "1.0.0",
+  "actionCalls": [
+    {
+      "type": "function",
+      "function": {
+        "name": "PLAN_EV_TRIP",
+        "description": "Plan a trip to a destination that combines EV charging stops and passenger rest breaks based on the current battery level.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "destination": { "type": "string", "description": "Name of the destination." },
+            "companions": { "type": "string", "enum": ["alone", "adults", "kids", "pet"], "description": "Who is travelling with the driver." }
+          },
+          "required": ["destination"]
+        },
+        "component": "activity"
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "START_CARE_MODE",
+        "description": "Keep the parked cabin at a comfortable temperature for a pet left inside or for a short rest, and show a status screen.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "mode": { "type": "string", "enum": ["pet", "rest"], "description": "Care mode to start." },
+            "temperature": { "type": "number", "description": "Target cabin temperature in Celsius." }
+          },
+          "required": ["mode"]
+        },
+        "component": "service"
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "DIAGNOSE_VEHICLE",
+        "description": "Explain a dashboard warning light or a vehicle symptom in plain language using live vehicle data and suggest what to do next.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "symptom": { "type": "string", "description": "The warning light or symptom described by the user." }
+          },
+          "required": ["symptom"]
+        },
+        "component": "activity"
+      }
+    }
+  ]
+}

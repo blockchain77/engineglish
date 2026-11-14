@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 옆자리 아이콘: AI 오브(그라디언트 원) + 좌석 실루엣 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M54,22a32,32 0,1 1,-0.1 0z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="26" android:startY="26" android:endX="82" android:endY="82">
+                <item android:offset="0" android:color="#FF5EE6FF" />
+                <item android:offset="0.55" android:color="#FF7C8CFF" />
+                <item android:offset="1" android:color="#FFB57CFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- seat backrest -->
+    <path android:fillColor="#FF0B0F15"
+        android:pathData="M45,36c0,-2.8 2.2,-5 5,-5h4c2.8,0 5,2.2 5,5v20c0,1.7 -1.3,3 -3,3h-8c-1.7,0 -3,-1.3 -3,-3z" />
+    <!-- seat cushion -->
+    <path android:fillColor="#FF0B0F15"
+        android:pathData="M40,61c0,-1.7 1.3,-3 3,-3h20c1.7,0 3,1.3 3,3v4c0,2.8 -2.2,5 -5,5H45c-2.8,0 -5,-2.2 -5,-5z" />
+    <!-- sparkle -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M69,33l1.6,4.4l4.4,1.6l-4.4,1.6l-1.6,4.4l-1.6,-4.4l-4.4,-1.6l4.4,-1.6z" />
+</vector>

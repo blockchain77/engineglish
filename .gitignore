@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+/local.properties
+/keystore.properties
+*.jks
+*.keystore
+.idea/
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+.kotlin/
+
+# 공모전 접수양식(DOCX): 현대차그룹 정보자산 문구가 있고 개인정보·서명을 기입하는 파일이라 이메일로만 제출
+docs/submission/*.docx
+~$*
