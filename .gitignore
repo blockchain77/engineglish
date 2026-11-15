@@ -1,18 +1,50 @@
 *.iml
 .gradle/
 /local.properties
-/keystore.properties
+keystore.properties
 *.jks
 *.keystore
 .idea/
 .DS_Store
-/build
-/app/build
+build/
 /captures
 .externalNativeBuild
 .cxx
 .kotlin/
 
-# 공모전 접수양식(DOCX): 현대차그룹 정보자산 문구가 있고 개인정보·서명을 기입하는 파일이라 이메일로만 제출
-docs/submission/*.docx
+# 서명 산출물·키 형식 (서명 키와 비밀번호는 저장소 밖에 둔다)
+/app/release/
+/app/debug/
+*.aab
+*.apks
+*.idsig
+*.p12
+*.pfx
+*.pk8
+*.pem
+.env
+
+# ml/ 파이프라인 산출물 — 가상환경·학습 결과(LoRA·병합 가중치·로그)·변환 모델은 커밋하지 않는다 (ml/README §10)
+__pycache__/
+*.py[cod]
+.venv/
+/ml/out/
+/llama.cpp/
+*.gguf
+*.safetensors
+
+# 공모전 접수양식: 현대차그룹 정보자산 문구가 있고 개인정보·서명을 기입하는 파일이라 이메일로만 제출
+# PDF·HWP로 내보낸 사본까지 막도록 폴더 전체를 제외하고, 공개용 별지 화면 시안만 예외로 둔다
+/docs/submission/*
+!/docs/submission/옆자리_별지_화면시안.pdf
+*접수양식*
+*.docx
+*.hwp
+*.hwpx
 ~$*
+
+# OS·JVM 부산물
+Thumbs.db
+desktop.ini
+hs_err_pid*.log
+replay_pid*.log

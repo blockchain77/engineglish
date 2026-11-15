@@ -49,7 +49,7 @@ Gleo 연동: `GO_TO_MY_PLACE(place, stop_type)` — Gleo가 들은 장소 이름
 
 ### ① 명령 해석 — `ai/nlu/OnDeviceIntentEngine.kt`
 - 목표 모델: **Qwen3-0.6B (Apache-2.0)** + LoRA(r=16, q/k/v/o/gate/up/down). 출력은 JSON 한 줄이다(`ml/README.md`).
-- 학습 데이터: 의도 26종 × 템플릿·구어 변형 × 장소 이름 × **음성인식 오타 주입**(Hangul.kt와 같은 혼동 규칙). 테스트에는 학습에 없는 장소 이름과 템플릿을 쓴다.
+- 학습 데이터: 의도 27종 × 템플릿·구어 변형 × 장소 이름 × **음성인식 오타 주입**(Hangul.kt와 같은 혼동 규칙). 테스트의 고유 장소 이름은 모두 학습에 없는 이름이고('빵집'·'카페' 같은 종류 단어만 겹침), 테스트 문장의 절반(302/600)은 학습에 쓰지 않은 평가 전용 템플릿으로 만든다.
 - 배포: LoRA 병합 → GGUF Q4_K_M(약 0.4GB) → llama.cpp(Android NDK) 또는 NPU. 목표는 300ms 이내다.
 - 현재 앱: 같은 출력 구조의 규칙 기반 대체물(`KeywordIntentEngine` + `QueryParser`)이다. 인터페이스가 같아서 모델로 바꿔도 앱 코드는 그대로다.
 

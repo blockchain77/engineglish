@@ -183,7 +183,7 @@
 ---
 
 ## 7. 참고자료
-- GitHub: https://github.com/blockchain77/yeopjari (최종 커밋 해시는 제출 직전 기입)
+- GitHub: https://github.com/blockchain77/yeopjari (제출 시점 커밋 해시는 접수양식 7번 항목에 기재)
 - release APK: `apk/` 폴더 (파일명 `팀명_옆자리_release.apk`로 제출)
 - 시연 영상: 에뮬레이터 실구동 녹화 (맞춤 AI · HUD 시뮬레이터 · 기존 기능)
 - 화면 시안(별지 PDF), 정확도 평가 보고서 `docs/eval/personal_eval.md`, 명령 해석 LoRA 파이프라인 `ml/`

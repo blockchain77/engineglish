@@ -2,6 +2,8 @@
 gradlew text eol=lf
 *.sh text eol=lf
 *.bat text eol=crlf
+# 단위 테스트가 다시 쓰는 평가 보고서 — 줄바꿈을 LF로 고정해 테스트 후에도 변경 없음
+docs/eval/*.md text eol=lf
 *.apk binary
 *.mp4 binary
 *.png binary

@@ -44,7 +44,7 @@ adb install -r apk/Yeopjari_release.apk
 런처에서 **옆자리** 실행 → 권한 허용(위치·차속·에너지) → 첫 화면 **맞춤 AI**의 상황 칩(토요일·대전 가는 길 / 평일 아침·판교 / 토요일 오전·잠실)을 고르고 말하기 또는 예시 문장을 누릅니다.
 
 ### 2-2. 소스 빌드 · 테스트
-요구 사항: Android Studio (Narwhal 이상), **JDK 17~21**, Android SDK Platform 34 이상, Gradle 8.14 (wrapper 포함)
+요구 사항: Android Studio Narwhal 3 Feature Drop(2025.1.3) 이상(AGP 8.13.2), **JDK 17~21**, Android SDK Platform 36(compileSdk 36), Gradle 8.14.3 (wrapper 포함)
 
 ```bash
 ./gradlew :app:assembleDebug          # 디버그
