@@ -1,7 +1,7 @@
 {
-  "packageName": "com.yeopjari.app",
+  "packageName": "com.cartutor.engineglish",
   "appDescription": "An in-car English coach for commuters. It asks short spoken English questions when driving is calm, goes silent when the driver needs to focus, and scores answers inside the car without sending anything to a server.",
-  "invokeWord": "옆자리",
+  "invokeWord": "엔진글리시",
   "version": "2.0.0",
   "actionCalls": [
     {

@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Yeopjari"
+rootProject.name = "Engineglish"
 include(":app")

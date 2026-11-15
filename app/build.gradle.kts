@@ -13,13 +13,13 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.yeopjari.app"
+    namespace = "com.cartutor.engineglish"
     compileSdk = 36
     // AAOS Car API (차속 · 주의분산 제한 CarUxRestrictions) — Pleos 문서 권장: 표준 데이터는 CarPropertyManager 사용
     useLibrary("android.car")
 
     defaultConfig {
-        applicationId = "com.yeopjari.app"
+        applicationId = "com.cartutor.engineglish"
         minSdk = 28
         targetSdk = 34
         versionCode = 3

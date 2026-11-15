@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-옆자리 영어 — '학습자 응답 이해' 모델 학습 데이터(합성) 생성.
+엔진글리시 — '학습자 응답 이해' 모델 학습 데이터(합성) 생성.
 
 차 안 STT(영어)가 돌려준 학습자 발화 + 문항 → JSON 한 줄
   {"act": "answer|repeat|slower|skip|hint|meaning|pause|resume|stop|noise",
@@ -21,7 +21,7 @@ import random
 import re
 from pathlib import Path
 
-SYSTEM = "옆자리 영어 응답 판정기. 문항과 영어 음성인식 결과를 보고 JSON 한 줄만 출력한다."
+SYSTEM = "엔진글리시 응답 판정기. 문항과 영어 음성인식 결과를 보고 JSON 한 줄만 출력한다."
 
 # ── 문항 씨앗: (type, track, prompt, answers, keywords) ───────────────────────────
 # type: build(한→영 문장) / repeat(따라 말하기) / vocab(뜻→단어) / qa(토익 스피킹형 답변)

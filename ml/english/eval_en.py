@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-옆자리 영어 '학습자 응답 이해' 평가.
+엔진글리시 '학습자 응답 이해' 평가.
 
     python eval_en.py --model Qwen/Qwen3-4B --adapter out/q4B/lora --test data/test.jsonl --out out/q4B
     python eval_en.py --baseline --test data/test.jsonl --out out/baseline      # 규칙 기반 비교군

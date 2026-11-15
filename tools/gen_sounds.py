@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""옆자리 영어 효과음 생성기 — 직접 합성한 소리만 쓴다 (외부 음원·샘플 없음).
+"""엔진글리시 효과음 생성기 — 직접 합성한 소리만 쓴다 (외부 음원·샘플 없음).
 
     python tools/gen_sounds.py            # app/src/main/res/raw/sfx_*.wav 를 다시 만든다
     python tools/gen_sounds.py --out DIR  # 다른 폴더에 만든다
@@ -192,7 +192,7 @@ def write_wav(path, samples):
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     default_out = os.path.join(here, os.pardir, "app", "src", "main", "res", "raw")
-    ap = argparse.ArgumentParser(description="옆자리 영어 효과음(WAV) 합성")
+    ap = argparse.ArgumentParser(description="엔진글리시 효과음(WAV) 합성")
     ap.add_argument("--out", default=default_out, help="WAV 를 쓸 폴더 (기본: app/src/main/res/raw)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)

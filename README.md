@@ -1,9 +1,43 @@
-# 옆자리 영어 (YEOPJARI English) — 운전 부하에 맞춰 바뀌는 차량 전용 영어 코치
+# 엔진글리시 (Engineglish) — 시동 걸면 영어 엔진도 ON
 
 > **도로가 한산하면 짧게 묻고, 교차로·방향지시등·급제동 앞에서는 바로 입을 다물고, 여유가 생기면 "아까 그 문제 다시 할게요."로 이어 갑니다.**
 > 하루 70~80분 출퇴근 운전을 영어 시간으로 바꾸는 Pleos Connect(AAOS) 앱. 학습 기록은 이 차 안에만 암호화해 저장하고, 어떤 서버로도 보내지 않습니다.
 
 현대자동차그룹 차량용 앱 개발 공모전(2026) 출품작 · Pleos Connect (Android Automotive OS 14) 전용 · v2.0.0 (versionCode 3)
+
+**팀 카튜터 (CarTutor) — 차 안의 선생님** · 운전 부하에 맞춰 바뀌는 차량 전용 영어 코치 · release APK: `apk/CarTutor_Engineglish_release.apk`
+
+---
+
+## 실제 구동 화면
+
+Pleos Connect 에뮬레이터에서 실제로 실행한 화면입니다(왼쪽은 에뮬레이터의 차량 상태 영역, 오른쪽이 앱). 주행은 앱 안의 통근 시뮬레이터로 재생했고, 학습 기록 수치는 시연용 가상 기록(`en_seed`)입니다.
+
+| 홈 — 오늘의 세션·복습·진행률 | 주행 학습 — 질문과 앞유리 HUD 힌트 |
+|---|---|
+| ![홈](docs/screenshots/02_home.jpg) | ![주행 학습](docs/screenshots/03_drive_question.jpg) |
+
+| 정답 — 효과음과 XP | 집중 필요 — 방향지시등을 켜면 질문을 멈춤 |
+|---|---|
+| ![정답](docs/screenshots/04_drive_correct.jpg) | ![집중](docs/screenshots/05_drive_focus.jpg) |
+
+| 여유 — 크루즈 주행 중 말하기 | 위험 — 급제동 시 즉시 무음 |
+|---|---|
+| ![여유](docs/screenshots/06_drive_relaxed.jpg) | ![위험](docs/screenshots/07_drive_critical.jpg) |
+
+| 퇴근길 — 학습할지 먼저 묻기 | 주차 완료(P) 대시보드 — 결과·진행률·마스코트 |
+|---|---|
+| ![퇴근길 질문](docs/screenshots/08_evening_ask.jpg) | ![주차 대시보드](docs/screenshots/09_parked_dashboard.jpg) |
+
+| 학습 — 트랙·레벨·유닛 | 리포트 — 주간 기록·발음 프로필 |
+|---|---|
+| ![학습](docs/screenshots/10_learn.jpg) | ![리포트](docs/screenshots/12_report.jpg) |
+
+| 복습 — 간격 반복 | 설정 — 출퇴근 맞춤·효과음·마이크 테스트 |
+|---|---|
+| ![복습](docs/screenshots/11_review.jpg) | ![설정](docs/screenshots/13_settings.jpg) |
+
+첫 실행 화면: ![첫 실행](docs/screenshots/01_onboarding.jpg)
 
 ---
 
@@ -90,7 +124,7 @@
 english/core     계약(인터페이스) · 모델 · UI 상태 · 임계값 · MiniJson
 english/content  JSON 콘텐츠 로더 · 검증(ContentAudit) · 오늘의 한 문장
 english/learn    SRS · 적응형 레벨 테스트 · 진도/체크포인트 · 출퇴근 세션 계획 · 암호화 저장소
-english/speech   정규화 · 규칙 채점 · 명령 · 발음 진단 · 유창성 · Pleos STT/TTS 포트 · 오디오 환경
+english/speech   정규화 · 규칙 채점 · 명령 · 발음 진단 · 유창성 · Pleos STT/TTS 포트 · 오디오 환경 · 마이크 테스트
 english/drive    부하 엔진 · 정책 · 상황 훅 · 출퇴근 판단 · 가상 지도 · 신호 허브 · 미디어 키 · 앰비언트
 english/coach    DefaultEnglishCoach — 세션 상태 기계(브리핑 → 질문 → 듣기 → 채점 → 피드백, 잠시 멈춤/일시정지/요약) · 퇴근길 질문 · 주차 대시보드
 english/sound    효과음 (SoundPool, 직접 합성한 WAV)
@@ -111,7 +145,7 @@ Pleos SDK는 `settings.gradle.kts`의 Pleos Maven 저장소에서 받는다.
 ## 7. 시연 (디버그 빌드 또는 ADB 켜짐일 때만 동작)
 화면 왼쪽 아래 **시연** 버튼으로 시연 패널(시나리오 · 운전 신호 · 답 주입 · 음성 명령 · 미디어 키 · 배속)을 연다. adb로도 같은 일을 할 수 있다(에뮬레이터 지정 필수):
 ```bash
-A="adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity"
+A="adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity"
 $A --ez en_seed true                      # 가상 학습 기록(6일 연속·복습 카드·틀린 표현) 채우기
 $A --es en_scenario MORNING               # MORNING | EVENING | CHARGING | PARKED | STOP  (EVENING: 3초 달린 뒤 "퇴근길에도 영어 복습할까요?")
 $A --es signal TURN_ON                    # TURN_ON | TURN_OFF | INTERSECTION | HARD_BRAKE | RAIN_ON | RAIN_OFF | JAM | CRUISE_ON | CRUISE_OFF | NAV_PROMPT | NEAR_ARRIVAL | ARRIVE | TUNNEL | SCHOOL_ZONE ...
@@ -121,8 +155,8 @@ $A --es key NEXT                          # NEXT | PREVIOUS | PLAY_PAUSE (핸들
 $A --es screen REPORT                     # HOME | DRIVE | LESSON | REVIEW | REPORT | SETTINGS
 $A --es timescale 6 | --ez en_reset true
 ```
-Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n com.yeopjari.app/.MainActivity --es ACTION_PARAM '{\"track\":\"travel\"}'"`,
-`adb -s emulator-5554 shell "am broadcast -a SAVE_EXPRESSION -n com.yeopjari.app/.platform.gleo.GleoActionReceiver --es ACTION_PARAM '{\"text\":\"Let us call it a day.\"}'"`.
+Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n com.cartutor.engineglish/.MainActivity --es ACTION_PARAM '{\"track\":\"travel\"}'"`,
+`adb -s emulator-5554 shell "am broadcast -a SAVE_EXPRESSION -n com.cartutor.engineglish/.platform.gleo.GleoActionReceiver --es ACTION_PARAM '{\"text\":\"Let us call it a day.\"}'"`.
 
 권장 발표 흐름: `en_seed` → MORNING(브리핑 "출근길 32분 → 새 표현 6개 + 복습 10개") → 정답 주입(초록 펄스) → TURN_ON(잠시 멈춤 "방향지시등") → TURN_OFF("아까 그 문제 다시 할게요") → 터널 상황 표현 → CRUISE_ON(여유, 토익 질문) → HARD_BRAKE(즉시 정지) → L1_ERROR(발음 피드백) → JAM → 정체 탈출 표현 → NEAR_ARRIVAL(도착 1분 전으로, 배속 2배로 낮춤 → "곧 도착해요. 오늘 학습은 여기까지 할게요.") → 도착 · P단 → 주차 대시보드(마스코트 · 완료 징글) → 틀린 표현 복습 → 리포트. 퇴근길: EVENING → "퇴근길에도 영어 복습할까요?" → "응"이라고 말하거나 '할게요'.
 
@@ -132,10 +166,10 @@ Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n c
 2. PC 운영체제에서 마이크 접근을 허용한다 (Windows: 설정 → 개인 정보 → 마이크 → 데스크톱 앱 허용).
 3. 이어폰을 낀다. 에뮬레이터는 에코 제거가 없어 스피커로 들으면 안내 음성이 다시 마이크로 들어간다.
 
-이 앱은 `RECORD_AUDIO` 권한이 없다. 마이크 소리는 Pleos 음성 인식 서비스가 받고 앱에는 받아 적은 글자만 온다(`STT_SERVICE`). 켜졌는지는 정차 중 학습 화면에서 답을 말했을 때 받아 적은 글자가 보이는지로 확인한다. 아무것도 안 뜨면 1·2번 설정(또는 에뮬레이터 안 Pleos 음성 인식 서비스의 마이크 권한)이 꺼져 있는 것이고, 그동안에도 시연 패널과 `--es hear "…"` 로는 계속 답할 수 있다. 퇴근길 질문은 한국어로 듣는다("응", "네", "할게" / "아니", "쉴게").
+이 앱은 `RECORD_AUDIO` 권한이 없다. 마이크 소리는 Pleos 음성 인식 서비스가 받고 앱에는 받아 적은 글자만 온다(`STT_SERVICE`). 켜졌는지는 **설정 → 마이크 테스트**로 확인한다: "영어로 말해 보기"(또는 "한국어로")를 누르고 6초 안에 말하면 입력 크기 막대가 움직이고 받아 적은 글자와 결과("잘 들려요. 말로 답할 수 있어요.")가 나온다. 주행 학습 중에도 듣는 동안 받아 적는 글자가 화면에 보인다. `adb -s emulator-5554 logcat -s EngineglishSpeech EngineglishSound` 로는 인식 시작(`stt request locale=en-US`) · 결과 글자 수 · 오류 코드 · 효과음(`cue CORRECT played`)을 볼 수 있다(말한 내용은 남기지 않는다). 아무것도 안 뜨면 1·2번 설정(또는 에뮬레이터 안 Pleos 음성 인식 서비스의 마이크 권한)이 꺼져 있는 것이고, 그동안에도 시연 패널과 `--es hear "…"` 로는 계속 답할 수 있다. 퇴근길 질문은 한국어로 듣는다("응", "네", "할게" / "아니", "쉴게").
 
 ## 8. 알려진 한계
-- 에뮬레이터의 Pleos STT는 영어를 알아듣지 못할 수 있다 → 시연은 답 주입(`hear` · `answer` · 시연 패널)으로, 실차에서는 같은 코드가 STT 결과를 받는다.
+- Pleos Connect 에뮬레이터(음성 서비스 4.2.10)에서는 Pleos STT가 en-US를 받아들이고 PC 마이크로 말한 영어를 받아 적는 것을 확인했다. 다만 에코 제거·잡음 제거가 꺼져 있어(스피커 소리·주변 말소리도 답으로 듣는다) 이어폰을 쓰고 조용한 곳에서 시험한다. 영어를 거절하는 환경(`UNAVAILABLE_LANGUAGE`)에서는 로그에 남기고 화면 선택지 · 답 주입(`hear` · `answer` · 시연 패널)으로 계속 쓸 수 있다.
 - 에뮬레이터는 PC 마이크를 기본으로 막아 둔다 → 부팅할 때마다 `adb -s emulator-5554 emu avd hostmicon` (7장 '직접 말해서 시험하기').
 - 주차 대시보드는 부하 엔진이 '정차'로 내려온 뒤(P단에 넣고 약 4초)에 뜬다. 앱을 다시 켜면 '지난 학습 결과'는 다음 세션을 마칠 때까지 비어 있다.
 - 핸들 각도 부호, 앰비언트 색 형식(0xRRGGBB), 핸들 미디어 버튼의 MediaSession 전달은 실차에서 다시 확인해야 한다.

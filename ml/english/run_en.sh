@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 옆자리 영어 응답 이해 LoRA: 데이터 생성 → 규칙 비교군 → Qwen3-4B·1.7B 학습·평가 (B200 MIG 1g.23gb 기준)
+# 엔진글리시 응답 이해 LoRA: 데이터 생성 → 규칙 비교군 → Qwen3-4B·1.7B 학습·평가 (B200 MIG 1g.23gb 기준)
 #   tmux new -d -s en "bash run_en.sh > run.log 2>&1"
 set -uo pipefail
 cd "$(dirname "$0")"

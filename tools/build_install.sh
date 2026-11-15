@@ -5,5 +5,5 @@ set -e
 ADB="${ADB_BIN:-adb} -s ${EMULATOR_SERIAL:-emulator-5554}"
 ./gradlew :app:assembleRelease --console=plain -q 2>&1 | grep -E "^e: |error" || true
 $ADB install -r -g app/build/outputs/apk/release/app-release.apk | tail -1
-$ADB shell am force-stop com.yeopjari.app
-$ADB shell am start -n com.yeopjari.app/.MainActivity >/dev/null
+$ADB shell am force-stop com.cartutor.engineglish
+$ADB shell am start -n com.cartutor.engineglish/.MainActivity >/dev/null

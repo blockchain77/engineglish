@@ -1,6 +1,6 @@
-# 옆자리 영어 (YEOPJARI English) — Engineering Spec v1
+# 엔진글리시 (Engineglish) — Engineering Spec v1
 
-Owner of this document and of `english/core/**`: **architect**. Engineers implement modules in parallel from this spec without talking to each other. If something here conflicts with the code in `app/src/main/java/com/yeopjari/app/english/core/`, **the code wins** (it compiles); this document explains it.
+Owner of this document and of `english/core/**`: **architect**. Engineers implement modules in parallel from this spec without talking to each other. If something here conflicts with the code in `app/src/main/java/com/cartutor/engineglish/english/core/`, **the code wins** (it compiles); this document explains it.
 
 **v1.2 (2026-11-15)** — the driving lesson now ends 60 s before arrival (§7), the evening commute asks before starting (§7.1), a parked dashboard shows results and progress when the car is put in P (§7.2), and answers get short sound effects (§7.3).
 
@@ -42,7 +42,7 @@ Hard rules (all agents):
 
 ## 2. Package layout, ownership, entry points, build hygiene
 
-Root package `com.yeopjari.app`. Sources `app/src/main/java/com/yeopjari/app/`, tests `app/src/test/java/com/yeopjari/app/`.
+Root package `com.cartutor.engineglish`. Sources `app/src/main/java/com/cartutor/engineglish/`, tests `app/src/test/java/com/cartutor/engineglish/`.
 
 | Path | Owner | Contents |
 |---|---|---|
@@ -53,30 +53,30 @@ Root package `com.yeopjari.app`. Sources `app/src/main/java/com/yeopjari/app/`, 
 | `english/drive/**`, `sim/**`, `platform/pleos/PleosNaviGateway.kt`, `platform/pleos/PleosVehicleGateway.kt`, `platform/hub/Hubs.kt`, `core/gateway/Gateways.kt`, `core/model/Vehicle.kt`, `core/model/Navigation.kt`, tests `english/drive/**` | **drive** | `RuleLoadEngine`, `TableLoadPolicy`, `DrivingSignalHub`, `CommuteMaps` (map data), `RuleContextHookDetector`, `RouteCommuteDetector`, `MediaKeyHub`, `PleosVehicleFeedback`, `sim/CommuteSimulator.kt`, `DriveModule` |
 | `english/coach/**`, tests `english/coach/**` | **coach** | `DefaultEnglishCoach` (state machine), `DemoAnswers`, scenario tests on virtual time |
 | `ui/english/**`, `ui/theme/**` | **ui** | all new screens/components/navigation, `EnglishApp` composable, theme refresh |
-| `YeopjariApp.kt`, `MainActivity.kt`, `AndroidManifest.xml`, `assets/schema.json`, `platform/gleo/**`, `app/build.gradle.kts`, deletions of legacy code, `README.md` | **integration** (later) | wiring, extras, Gleo, permissions, cleanup |
+| `EngineglishApp.kt`, `MainActivity.kt`, `AndroidManifest.xml`, `assets/schema.json`, `platform/gleo/**`, `app/build.gradle.kts`, deletions of legacy code, `README.md` | **integration** (later) | wiring, extras, Gleo, permissions, cleanup |
 
 ### 2.1 Entry points every module MUST provide (exact names and constructors)
 
 Integration wires only these. Pure classes inside must have Android-free constructors (JVM-testable).
 
 ```kotlin
-// content — com.yeopjari.app.english.content
+// content — com.cartutor.engineglish.english.content
 class JsonContentSource(read: (path: String) -> String?) : ContentSource   // path = ContentFiles.* ; null = file missing
 class ContentModule(context: android.content.Context) { val source: ContentSource }   // reads assets via context.assets
 
-// learn — com.yeopjari.app.english.learn
+// learn — com.cartutor.engineglish.english.learn
 class SrsScheduler : Scheduler
 class AdaptivePlacement : PlacementEngine
 class UnitProgression(scheduler: Scheduler) : Progression
 class CommuteSessionPlanner(scheduler: Scheduler, progression: Progression) : SessionPlanner
 class VaultLearnerRepository(store: SecureStore, scope: CoroutineScope, clock: Clock) : LearnerRepository
-class VaultSecureStore(vault: com.yeopjari.app.platform.secure.SecureVault) : SecureStore
+class VaultSecureStore(vault: com.cartutor.engineglish.platform.secure.SecureVault) : SecureStore
 class LearnModule(vault: SecureVault, scope: CoroutineScope, clock: Clock) {
     val store: SecureStore; val repository: LearnerRepository; val scheduler: Scheduler
     val placement: PlacementEngine; val progression: Progression; val planner: SessionPlanner
 }
 
-// speech — com.yeopjari.app.english.speech
+// speech — com.cartutor.engineglish.english.speech
 object EnglishNormalizer : TextNormalizer
 class RuleAnswerJudge(normalizer: TextNormalizer, pronunciation: PronunciationAnalyzer) : AnswerJudge
 class BilingualCommandParser(normalizer: TextNormalizer) : CommandParser
@@ -91,7 +91,7 @@ class SpeechModule(context: Context, scope: CoroutineScope, clock: Clock) {
     fun release()
 }
 
-// drive — com.yeopjari.app.english.drive (simulator in com.yeopjari.app.sim)
+// drive — com.cartutor.engineglish.english.drive (simulator in com.cartutor.engineglish.sim)
 class RuleLoadEngine : DrivingLoadEngine
 class TableLoadPolicy : LoadPolicy
 class RuleContextHookDetector : ContextHookDetector
@@ -107,13 +107,13 @@ class DriveModule(context: Context, scope: CoroutineScope, clock: Clock, audio: 
     fun onLocationPermissionGranted(); fun refreshCarApi(); fun release()
 }
 
-// coach — com.yeopjari.app.english.coach
+// coach — com.cartutor.engineglish.english.coach
 class DefaultEnglishCoach(deps: CoachDeps, scope: CoroutineScope) : EnglishCoach
 
-// sound — com.yeopjari.app.english.sound (res/raw/sfx_*.wav are synthesised by us: additive sines + exponential decay, 44.1 kHz mono 16-bit)
+// sound — com.cartutor.engineglish.english.sound (res/raw/sfx_*.wav are synthesised by us: additive sines + exponential decay, 44.1 kHz mono 16-bit)
 class SoundPoolPlayer(context: Context, allowed: () -> Boolean = { true }) : SoundPort   // SoundPool, USAGE_ASSISTANCE_SONIFICATION, no audio focus
 
-// ui — com.yeopjari.app.ui.english
+// ui — com.cartutor.engineglish.ui.english
 @Composable fun EnglishApp(coach: EnglishCoach, navigator: EnglishNavigator, demo: DemoControl?, modifier: Modifier = Modifier)
 ```
 
@@ -121,10 +121,10 @@ class SoundPoolPlayer(context: Context, allowed: () -> Boolean = { true }) : Sou
 
 All agents edit the same tree; one broken file breaks everyone's build.
 - After every file you add/change run `./gradlew :app:compileDebugKotlin --console=plain -q` (Git Bash, `JAVA_HOME = JDK 17~21`). Never leave your files non-compiling. Gradle serializes concurrent builds; use 10-min timeouts.
-- Run your tests with a filter: `./gradlew :app:testDebugUnitTest --tests 'com.yeopjari.app.english.<module>.*' --console=plain`. All test sources compile together — keep your test files compiling at all times.
+- Run your tests with a filter: `./gradlew :app:testDebugUnitTest --tests 'com.cartutor.engineglish.english.<module>.*' --console=plain`. All test sources compile together — keep your test files compiling at all times.
 - If a compile error is in a file you don't own, don't fix it; wait and retry (someone is mid-edit). Report it if it persists.
-- **Legacy code stays until integration.** `ai/**`, `YeopjariStore.kt`, `ui/Shell.kt`, `ui/screens/**`, `ui/components/**`, `sim/DriveSimulator.kt`, `sim/DemoData.kt` are still compiled. Owners of shared legacy files (drive: `core/model/*.kt`, `core/gateway/Gateways.kt`, `platform/hub/Hubs.kt`, Pleos gateways; ui: `ui/theme/**`) make **additive** changes only: keep every existing public name/parameter; new fields need defaults. Drive writes the new simulator in **new** files (`sim/CommuteSimulator.kt` …) and does not delete `sim/DriveSimulator.kt`/`sim/DemoData.kt` — integration deletes them together with the legacy features (this is the “지도 정보 초기화”: old persona places, visit history, old scenarios disappear; `CommuteMaps.default` replaces them).
-- New code must not import legacy packages (`com.yeopjari.app.ai.*`, `YeopjariStore`, `ui.screens`, `ui.components`, `ui.Shell`, `sim.DriveSimulator`, `sim.Places/Chargers/DemoHistory`, `core.model.Agent/Moment`). Old `ai.context.LoadLevel` ≠ new `english.core.LoadLevel`.
+- **Legacy code stays until integration.** `ai/**`, `EngineglishStore.kt`, `ui/Shell.kt`, `ui/screens/**`, `ui/components/**`, `sim/DriveSimulator.kt`, `sim/DemoData.kt` are still compiled. Owners of shared legacy files (drive: `core/model/*.kt`, `core/gateway/Gateways.kt`, `platform/hub/Hubs.kt`, Pleos gateways; ui: `ui/theme/**`) make **additive** changes only: keep every existing public name/parameter; new fields need defaults. Drive writes the new simulator in **new** files (`sim/CommuteSimulator.kt` …) and does not delete `sim/DriveSimulator.kt`/`sim/DemoData.kt` — integration deletes them together with the legacy features (this is the “지도 정보 초기화”: old persona places, visit history, old scenarios disappear; `CommuteMaps.default` replaces them).
+- New code must not import legacy packages (`com.cartutor.engineglish.ai.*`, `EngineglishStore`, `ui.screens`, `ui.components`, `ui.Shell`, `sim.DriveSimulator`, `sim.Places/Chargers/DemoHistory`, `core.model.Agent/Moment`). Old `ai.context.LoadLevel` ≠ new `english.core.LoadLevel`.
 - Kotlin gotcha: never write `/*` inside a KDoc/comment (e.g. `content/*.json`) — Kotlin nests block comments.
 - `org.json` does not work in JVM unit tests → use `english.core.MiniJson` (+ `jStr/jInt/jObj/jEnum…` helpers). No kotlinx-serialization, no coroutines-test: use `english.core.VirtualTime` (test dir) for virtual time.
 
@@ -289,7 +289,7 @@ Mirroring sim routes to the real car navigation (legacy `NaviHub.mirrorToCar`) *
 
 ### 4.9 Media keys (`MediaKeyHub`)
 
-`android.media.session.MediaSession` (tag “YeopjariEnglish”), callback `onSkipToNext→NEXT`, `onSkipToPrevious→PREVIOUS`, `onPlay/onPause→PLAY_PAUSE`, PlaybackState with ACTION_SKIP_TO_NEXT|PREVIOUS|PLAY_PAUSE|PLAY|PAUSE; `setActive(true)` only while a session runs. `onKeyEvent(keyCode, down)` maps with `MediaKey.fromKeyCode`, emits on key-down (repeat 0) and returns true for media keys. Coach mapping: NEXT = SKIP, PREVIOUS = REPEAT, PLAY_PAUSE = PAUSE/RESUME toggle.
+`android.media.session.MediaSession` (tag “Engineglish”), callback `onSkipToNext→NEXT`, `onSkipToPrevious→PREVIOUS`, `onPlay/onPause→PLAY_PAUSE`, PlaybackState with ACTION_SKIP_TO_NEXT|PREVIOUS|PLAY_PAUSE|PLAY|PAUSE; `setActive(true)` only while a session runs. `onKeyEvent(keyCode, down)` maps with `MediaKey.fromKeyCode`, emits on key-down (repeat 0) and returns true for media keys. Coach mapping: NEXT = SKIP, PREVIOUS = REPEAT, PLAY_PAUSE = PAUSE/RESUME toggle.
 
 ### 4.10 Vehicle feedback (`PleosVehicleFeedback`)
 
@@ -469,7 +469,7 @@ Every finished session with ≥ 1 graded answer fills `dashboard: ParkedDashboar
 While moving the nav rail stays visible but non-DRIVE items show “정차 후 이용할 수 있어요” instead of navigating.
 
 ### 8.2 Car UX rules
-Dark automotive theme; drive prompt text ≥ 34 sp; touch targets ≥ 76 dp; max 4 buttons on the drive screen; no scrolling or lists while moving; partial transcripts only when parked; animation ≤ 1 s and none behind text while moving. Load colours: PARKED cyan/blue, RELAXED green, NORMAL teal, FOCUS amber, CRITICAL red (define tokens in `ui/theme` — keep legacy `Y`, `YeopjariTheme`, `YTypography`, `YShapes` names).
+Dark automotive theme; drive prompt text ≥ 34 sp; touch targets ≥ 76 dp; max 4 buttons on the drive screen; no scrolling or lists while moving; partial transcripts only when parked; animation ≤ 1 s and none behind text while moving. Load colours: PARKED cyan/blue, RELAXED green, NORMAL teal, FOCUS amber, CRITICAL red (define tokens in `ui/theme` — keep legacy `Y`, `EngineglishTheme`, `YTypography`, `YShapes` names).
 
 ### 8.3 Screens
 - **Onboarding**: track cards (4, with Korean descriptions), daily goal (3), privacy note “학습 기록은 이 차 안에만 암호화해 저장돼요”, start → `completeOnboarding` → `startPlacement` or `skipPlacement(level)`.
@@ -493,17 +493,19 @@ Gate (integration): `demoAllowed = (applicationInfo.flags and FLAG_DEBUGGABLE) !
 
 MainActivity extras:
 ```
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es en_scenario MORNING
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es signal TURN_ON
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es hear "Can we push the meeting to tomorrow?"
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es key NEXT
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es screen REPORT
+adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity --es en_scenario MORNING
+adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity --es signal TURN_ON
+adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity --es hear "Can we push the meeting to tomorrow?"
+adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity --es key NEXT
+adb -s emulator-5554 shell am start -n com.cartutor.engineglish/.MainActivity --es screen REPORT
 ```
 `en_scenario` → `demo.play(DemoScenario.valueOf)`; `signal` → `demo.inject(DemoSignal.valueOf)`; `hear` → `coach.onAnswerText`; `key` → `drive.mediaKeys.inject(MediaKey.valueOf)` (same path as the steering-wheel buttons; the UI demo panel uses `coach.onMediaKey`); `screen` → `navigator.go(EnglishRoute.valueOf)`. Invalid values ignored.
 
 Suggested PT flow: MORNING → briefing “출근길 32분 → 새 표현 6개 + 복습 10개” → NORMAL question → inject CORRECT (green pulse) → TURN_ON (HOLD, “방향지시등”) → TURN_OFF → “아까 그 문제 다시 할게요” → TUNNEL → hook → CRUISE_ON (RELAXED, TOEIC question) → HARD_BRAKE (CRITICAL, TTS cut) → L1_ERROR answer (R/L feedback) → JAM → JAM_EXIT hook “I'm stuck in traffic” → NEAR_ARRIVAL (“곧 도착해요. 오늘 학습은 여기까지 할게요.”) → arrival, P → parked dashboard (mascot + jingle) → “틀린 표현 복습” or “홈으로” → Report. Evening: EVENING → “퇴근길에도 영어 복습할까요?” → say “응” or tap “할게요”.
 
 **Speaking to the emulator.** The emulator does not pass the host microphone to apps by default. After every emulator boot run `adb -s emulator-5554 emu avd hostmicon` (same as Extended controls → Microphone → “Virtual microphone uses host audio input”), and allow microphone access for desktop apps in the host OS. The app itself holds no `RECORD_AUDIO` permission — audio reaches it only as text through the Pleos SpeechToText service (`pleos.car.permission.STT_SERVICE`). The emulator has no echo cancellation, so use earphones or the coach's own TTS is picked up again. Quick check: answer a question while parked and watch the partial transcript; if nothing appears, one of the three switches is off (the demo panel and `--es hear "…"` keep working without a microphone).
+
+**Microphone test (Settings → 마이크 테스트).** `MicTester` (core) / `MicTestRunner` (speech) opens one 6 s `SpeechPort.listen` on the same Pleos SpeechToText engine (EN by default, KO button beside it) and shows the live input level (relative to the RMS range seen in that test), the recognised text and a one-line result ("잘 들려요. 말로 답할 수 있어요." / "소리는 들어오는데 말을 알아듣지 못했어요…" / "아무 소리도 들어오지 않았어요…"). Disabled during a session or the evening ask; closing the screen cancels it. The app still holds no `RECORD_AUDIO`: audio is captured by the Pleos speech service. Logcat tag `EngineglishSpeech` records `stt init ok`, `stt request locale=…`, `stt final … chars=N rmsSamples=N`, `stt error CODE`, `mic test …` (never the utterance text); tag `EngineglishSound` records each sound cue.
 
 ---
 
@@ -741,15 +743,15 @@ val coach: EnglishCoach = DefaultEnglishCoach(CoachDeps(clock, content, learn.re
     drive.mediaKeys, drive.map, demoAllowed, sound = SoundPoolPlayer(app)), scope)
 init { coach.start(); scope.launch { coach.state.map { it.settings }.distinctUntilChanged().collect { drive.mirrorToCar.value = it.mirrorSimRouteToCar; speech.setEnglishRate(it.englishRate) } } }
 ```
-MainActivity: `setContent { YeopjariTheme { EnglishApp(container.coach, container.navigator, if (container.demoAllowed) container.drive.demo else null) } }`; `onKeyDown/onKeyUp` → `drive.mediaKeys.onKeyEvent(keyCode, down)` (return true if consumed); runtime permissions (FUSED_LOCATION, CAR_SPEED, CAR_ENERGY) → `drive.onLocationPermissionGranted()` / `drive.refreshCarApi()`; extras (§9) only when `demoAllowed`; Gleo (§10).
+MainActivity: `setContent { EngineglishTheme { EnglishApp(container.coach, container.navigator, if (container.demoAllowed) container.drive.demo else null) } }`; `onKeyDown/onKeyUp` → `drive.mediaKeys.onKeyEvent(keyCode, down)` (return true if consumed); runtime permissions (FUSED_LOCATION, CAR_SPEED, CAR_ENERGY) → `drive.onLocationPermissionGranted()` / `drive.refreshCarApi()`; extras (§9) only when `demoAllowed`; Gleo (§10).
 Manifest: add the permissions in §12, Gleo intent filters, keep `distractionOptimized`; consider removing `INTERNET` (nothing goes to servers) after checking Pleos STT/TTS still initialise on the emulator.
-Delete legacy (after the new app compiles): `ai/**`, `YeopjariStore.kt`, `ui/Shell.kt`, `ui/screens/**`, `ui/components/**`, `sim/DriveSimulator.kt`, `sim/DemoData.kt`, `core/model/Agent.kt`, `core/model/Moment.kt`, `platform/pleos/PleosSpeech.kt` (if unused), legacy tests (`DialogueStoreTest.kt`, `VirtualClock.kt`, `ai/**`), old schema functions. Update README.md (features, privacy, demo commands, “AI is an assistant; LoRA not integrated”).
+Delete legacy (after the new app compiles): `ai/**`, `EngineglishStore.kt`, `ui/Shell.kt`, `ui/screens/**`, `ui/components/**`, `sim/DriveSimulator.kt`, `sim/DemoData.kt`, `core/model/Agent.kt`, `core/model/Moment.kt`, `platform/pleos/PleosSpeech.kt` (if unused), legacy tests (`DialogueStoreTest.kt`, `VirtualClock.kt`, `ai/**`), old schema functions. Update README.md (features, privacy, demo commands, “AI is an assistant; LoRA not integrated”).
 
 ---
 
 ## 14. Testing
 
-Shared test utilities (`app/src/test/java/com/yeopjari/app/english/core/VirtualTime.kt`): `VirtualTime` (CoroutineDispatcher + Delay + Clock; `scope()`, `advanceBy(ms)`, `runCurrent()`, `START_MS` = 2026-11-16 07:40 KST) and `MutableSignalSource(clock)` (`set { it.copy(...) }`, `tick()`). `InMemorySecureStore` is in main core.
+Shared test utilities (`app/src/test/java/com/cartutor/engineglish/english/core/VirtualTime.kt`): `VirtualTime` (CoroutineDispatcher + Delay + Clock; `scope()`, `advanceBy(ms)`, `runCurrent()`, `START_MS` = 2026-11-16 07:40 KST) and `MutableSignalSource(clock)` (`set { it.copy(...) }`, `tick()`). `InMemorySecureStore` is in main core.
 
 Required tests (JVM, no Android):
 - content: every file parses with `JsonContentSource { File("src/main/assets/" + it).readText() }` (Gradle runs unit tests with working dir `app/`), zero problems, ids unique, volume/mix rules (§11), every HookTrigger and PronIssueType covered, each placement level/track pool ≥ 12, prompts length limits.
