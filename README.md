@@ -1,169 +1,126 @@
-# 옆자리 (YEOPJARI) — 나를 아는 AI 동승자
+# 옆자리 영어 (YEOPJARI English) — 운전 부하에 맞춰 바뀌는 차량 전용 영어 코치
 
-> **"잘못 알아들어도, 이 사람의 기록으로 바로잡고 · 헷갈리면 HUD로 묻고 · 고른 답으로 차 안에서 배운다."**
-> 차량 음성인식이 "성심당"을 "서심다응"으로 들어도, 옆자리는 이 운전자의 방문 기록(차 안에만 저장)으로 바로잡습니다.
-> 확신이 낮을 때만 앞유리 HUD에 선택지 3개를 띄우고, 운전자가 고른 답으로 그 자리에서 학습합니다. 개인 데이터는 차 밖으로 나가지 않습니다.
+> **도로가 한산하면 짧게 묻고, 교차로·방향지시등·급제동 앞에서는 바로 입을 다물고, 여유가 생기면 "아까 그 문제 다시 할게요."로 이어 갑니다.**
+> 하루 70~80분 출퇴근 운전을 영어 시간으로 바꾸는 Pleos Connect(AAOS) 앱. 학습 기록은 이 차 안에만 암호화해 저장하고, 어떤 서버로도 보내지 않습니다.
 
-현대자동차그룹 차량용 앱 개발 공모전(2026) 출품작 · Pleos Connect (AAOS) 전용 앱
+현대자동차그룹 차량용 앱 개발 공모전(2026) 출품작 · Pleos Connect (Android Automotive OS 14) 전용 · v2.0.0 (versionCode 3)
 
 ---
 
-## 1. 한눈에 보기
+## 1. 문제와 해법
 
-| 구분 | 내용 |
+| | |
 |---|---|
-| 플랫폼 | Pleos Connect (Android Automotive OS 기반), Kotlin + Jetpack Compose |
-| 사용 SDK | **SpeechToText 3.3.1 · NaviHelper 3.0.5 · FusedLocation 1.1.3 · Vehicle 2.3.2 · TextToSpeech 3.3.1** + AAOS Car API |
-| 차량 AI 연동 | **Gleo Interface (App Schema)** — `GO_TO_MY_PLACE` · `PLAN_EV_TRIP` · `START_CARE_MODE` (`assets/schema.json`) |
-| 핵심 AI | **개인화 보정 엔진**(차 안): 자모 단위 발음 비교 × 개인 방문 기록 6개 특징 → 확률 → 바로 실행 / 확인 / HUD 선택지 → 고른 답으로 즉시 학습 |
-| 명령 해석 모델 | Qwen3-0.6B + 차량 명령 LoRA (학습·평가 파이프라인 `ml/`, 앱에는 같은 출력 구조의 규칙 기반 대체물이 들어 있음) |
-| 개인정보 | 방문 기록 AES-256-GCM(Android Keystore) · 학습 기록 해시 체인 · 서버로는 서명된 가중치 변화량 6개만(연합학습) |
-| minSdk / target / compile | 28 / 34 / 36 |
-| APK | `apk/Yeopjari_release.apk` — v1.1.0 (versionCode 2), release 서명 |
+| 문제 | 바쁜 직장인은 하루 70~80분을 운전하지만 휴대폰 학습 앱은 쓸 수 없다. 블루투스 오디오 강의는 운전자가 지금 바쁜지 모른다. |
+| 해법 | 차량 신호(기어·속도·제한 속도·내비 안내 지점·방향지시등·핸들·브레이크·크루즈·와이퍼·전조등·내비 음성·충전)로 **운전 부하를 실시간 5단계로 판단**하고, 단계마다 할 수 있는 학습만 한다. |
+| 핵심 가치 | 학습 콘텐츠(4개 트랙 × 3레벨, 482문항) + 커리큘럼(레벨 테스트·유닛 체크포인트·간격 반복) + 운전 부하 엔진. 채점은 **앱 안 규칙 엔진**이 한다. |
 
-### 핵심 흐름 (시연 시나리오 "토요일 · 대전 본가 가는 길")
-1. "서심다응 가자" → STT 텍스트 → 명령 해석 `{NAV_PLACE, place:"서심다응"}`
-2. 보정 엔진: **성심당 대전역점**(발음 0.89 · 토요일 오전에 주로 · 5회 · 가는 길) > 본점 > DCC점 > 대흥동 성당
-3. HUD: "성심당 대전역점으로 갈까요?" → "응" → NaviHelper 안내 + "기억했어요 · ‘서심다응’ = 성심당"
-4. 같은 말 두 번째: 묻지 않고 바로 안내(10초 안에 "아니야"로 취소 가능)
-5. "아니야" → HUD 선택지(본점·DCC점·대흥동 성당) → "1번" → 그 선택을 학습
+**AI에 대해**: 답 채점·명령 인식·발음 진단은 모두 앱 안의 규칙 엔진입니다. 학습자 응답 이해 LoRA(Qwen3-4B / 1.7B)는 별도로 학습·평가만 했고(`docs/eval/en_lora_eval.md`) **앱에는 넣지 않았습니다.** 앱은 모델이 돈다고 표시하지 않습니다.
 
-같은 "스타벅스 가자"도 **평일 아침 판교 출근길**이면 판교테크노밸리점으로 바로, **토요일 잠실 집 앞**이면 잠실새내역점을 확인합니다.
+## 2. 기능
 
-### 그 밖의 기능 (같은 대화·안전·SDK 계층 위)
-충전 코파일럿(도착 SOC 예측·충전소 신뢰도·과태료 타이머·90% 한도) · 단계별 졸음 케어 · 펫 케어 · 아이 동승 · 뒷좌석 확인 · 주차 위치 음성 메모 · 경고등 해설 · 말로 만드는 루틴
+### 2-1. 운전 부하 엔진 (`english/drive/RuleLoadEngine.kt`, `TableLoadPolicy.kt`)
+| 단계 | 언제 | 앱이 하는 일 |
+|---|---|---|
+| 정차 PARKED | P단, 충전 중 정차 | 전체 화면 학습 — 레벨 테스트, 화면 보기 문제, 복습, 리포트, 핸들 퀴즈 |
+| 여유 RELAXED | 크루즈 주행, 15초 넘게 이어진 고속 직진 | 토익 스피킹(최대 45초 답변) + 아래 모두 |
+| 보통 NORMAL | 시내 주행, 정체(가다 서다) | 듣고 따라 말하기, 한→영 문장 만들기(12단어 이하), 단어 떠올리기 |
+| 집중 FOCUS | 방향지시등, 교차로·나들목 300m(또는 8초) 이내, 큰 핸들 조작, 단속 카메라 200m, 어린이 보호구역, 야간 빗길 | 새 질문 없음, 듣기 중단, 2초 안에 끝나는 말만 마무리 |
+| 위험 CRITICAL | 급제동(−3.5m/s² 이하), 제한 속도 +10km/h 초과, 내비 음성 안내 중 | 말하기·듣기 즉시 정지 |
 
----
+- 올라갈 때는 즉시, 내려갈 때는 낮은 단계가 4초 안정돼야 내려간다(위험은 원인이 사라져도 3초 유지 후 집중을 거친다).
+- 끊긴 문제는 **틀린 걸로 치지 않고**, 부하가 내려가면 "아까 그 문제 다시 할게요."로 같은 문제를 다시 묻는다.
+- 화면에는 이유를 한국어로 보여 준다: "교차로 접근 120m", "방향지시등", "급제동", "내비 음성 안내 중".
 
-## 2. 실행 방법
+### 2-2. 커리큘럼 (`assets/content/*.json`, `english/learn/**`)
+- 트랙: 비즈니스 · 일상 · 여행 · 토익 스피킹 / 레벨: 초급 · 중급 · 고급 / 유닛 10문항 × 3유닛 × 3레벨 × 4트랙 = 360문항 + 상황 표현 38 + 발음 드릴 48 + 오늘의 한 문장 36.
+- 문항 종류: 단어 떠올리기(한→영), 표현·문장 만들기(정답 여러 개 허용), 듣고 따라 말하기, 토익 스피킹(핵심어·길이·문법 휴리스틱 채점), 발음 짝 단어(R/L 등).
+- 첫 실행: 트랙·하루 목표 선택 → 적응형 레벨 테스트 12문항(맞히면 어려워지고 틀리면 쉬워짐) → 시작 레벨.
+- 유닛 평균 80% 이상이면 다음 유닛이 열리고, 레벨의 유닛을 통과하면 레벨 업. XP · 연속 학습일 · 하루 목표.
+- 간격 반복(SM-2 계열): 다시/어려움/좋음/쉬움 — 1.5초 안에 바로 맞히면 '쉬움'.
 
-### 2-1. APK 바로 설치 (심사용)
+### 2-3. 출퇴근 맞춤 (`CommuteSessionPlanner`, `RouteCommuteDetector`)
+- 집→회사 = 출근길(기본: 새 표현), 회사→집 = 퇴근길(기본: 오늘 틀린 표현 + 복습 예정 카드). 설정에서 시간대별로 바꿀 수 있다.
+- 남은 운전 시간으로 분량을 정한다: "출근길 32분 → 새 표현 6개 + 복습 10개". 도착 3분 전에는 '오늘의 한 문장'으로 마무리, 도착하면 요약.
+- 출발하면 자동 시작(설정), 출발 시각을 배워 출근 15분 전 제안.
+
+### 2-4. 손을 쓰지 않는 말하기와 발음 피드백 (`english/speech/**`)
+- 한국어 안내와 영어 문장은 Pleos TTS(영어가 안 되면 Android TTS en-US), 답은 Pleos STT(en-US)로 받는다.
+- 정규화(대소문자·문장부호·축약형·숫자·군말 um/uh/like) → 여러 정답 중 가장 가까운 것과 단어 정렬 → 정답/부분 정답/오답/무응답 + 점수.
+- 한국어 화자 발음 혼동 8종(R/L, F/P, V/B, TH/S, TH/D, Z/J, SH/S, 끝소리 탈락)을 단어 대체에서 찾아 한국어 팁과 짝 단어 드릴을 준다.
+- 유창성: 답을 시작하기까지 걸린 시간, 말한 시간, 분당 단어 수, 쉼.
+- 음성 명령(영·한): repeat/다시, slower/천천히, skip/넘겨, hint/힌트, meaning/뜻, pause/잠깐, continue/계속, 모르겠어요, 그만.
+
+### 2-5. 차라서 할 수 있는 것
+- **길 위의 기억 궁전**: 운전 중 처음 배운 표현을 그때 지나던 구간에 묶고, 다음에 같은 구간을 지나면 그 표현부터 다시 묻는다.
+- **방금 그 상황 표현**: 정체를 빠져나오면 "I was stuck in traffic.", 와이퍼가 켜지면 "It's pouring.", 터널·어린이 보호구역·회사 도착·충전·공항 목적지(여행 트랙 제안).
+- **핸들 미디어 버튼**: 다음 = 넘기기, 이전 = 다시, 재생/일시정지 = 잠깐/계속 (Activity 키 이벤트 + MediaSession).
+- **앞유리 HUD 힌트**: 듣는 동안 힌트 한 단어만(단어 문제는 첫 글자만 "r _ _ _ _"). 정답/아쉬움은 1초 앰비언트 라이트 색(초록/주황) + 화면 가장자리 빛.
+- **정차 핸들 퀴즈**: P단에서 핸들을 돌려 정답 차로를 고르고 브레이크를 밟아 확정(에뮬레이터는 시연 슬라이더).
+
+### 2-6. 안전·차량 UX
+- 주행 중(CarUxRestrictions)에는 '주행 학습' 화면만 조작할 수 있고, 다른 화면은 "정차 후 이용할 수 있어요".
+- 주행 화면 문제 글자 34sp 이상, 버튼 76dp 이상·최대 4개, 스크롤·목록 없음, 영어 문장은 귀로만(정차 중에만 화면에 표시).
+
+### 2-7. Gleo App Schema (`assets/schema.json`, `platform/gleo/GleoBridge.kt`)
+| 함수 | component | 동작 |
+|---|---|---|
+| `START_ENGLISH_SESSION(track?)` | activity | 운전 부하에 맞춘 세션 시작 (business · daily · travel · toeic_speaking) |
+| `REVIEW_NOW()` | activity | 지금 복습할 표현(오늘 틀린 것부터) |
+| `SAVE_EXPRESSION(text?)` | service | 지금 문장(또는 말한 문장)을 차 안 표현 노트에 저장 |
+
+## 3. 개인정보
+- 학습 기록(진도·복습 카드·발음 기록·출발 시각(분)·표현을 묶은 구간 이름)은 `english_learner_v1.bin` 한 파일에 **AES-256-GCM(Android Keystore 키)**으로 암호화해 이 차 안에만 저장한다. 서버 전송 없음, 목소리 녹음·위치 좌표 저장 없음.
+- 로그에는 오류 코드만 남긴다(발화·답·위치·장소 이름은 남기지 않음). 설정 → "학습 기록 모두 지우기".
+- 지도는 **가상 출퇴근 지도 "잠실 ↔ 판교"**(공공 랜드마크, 좌표 소수점 3자리)만 쓴다. 학습자는 가상 인물이며 실명·연락처·주소가 없다.
+- 이전 버전(장소 이름 보정)의 개인 장소·방문 기록 파일은 앱이 시작될 때 지운다(지도 정보 초기화).
+
+## 4. 사용 SDK와 권한
+- Pleos SDK: **Vehicle 2.3.2 · NaviHelper 3.0.5 · SpeechToText 3.3.1 · TextToSpeech 3.3.1 · FusedLocation 1.1.3** + 표준 AAOS/Android API(CarUxRestrictions, CarPropertyManager 차속, AudioManager 포커스·재생 콜백, MediaSession). `@PrivilegedApi`·내부 API는 쓰지 않는다.
+- 차량 마이크는 SpeechToText SDK로만 받는다(`RECORD_AUDIO`·AudioRecord·SpeechRecognizer 없음). 외부 지도 API 없음.
+- 권한: `CAR_SPEED`(런타임) · Pleos `CAR_DRIVE`(기어·핸들·브레이크·크루즈) · `CAR_LIGHTS`(방향지시등·전조등) · `CONTROL_CAR_LIGHTS`(앰비언트 펄스) · `CAR_WINDOWS`(와이퍼) · `CAR_ENERGY`(충전) · `NAVI_ROUTE` · `NAVI_ROUTE_SEARCH`(설정에서 켤 때만 시뮬레이터 경로를 실차 내비에 반영, 기본 꺼짐) · `STT_SERVICE` · `TTS_SERVICE` · `FUSED_LOCATION`(런타임). `INTERNET`은 앱이 선언하지 않는다(Pleos STT/TTS SDK가 자체 선언).
+
+## 5. 구조
+```
+english/core     계약(인터페이스) · 모델 · UI 상태 · 임계값 · MiniJson
+english/content  JSON 콘텐츠 로더 · 검증(ContentAudit) · 오늘의 한 문장
+english/learn    SRS · 적응형 레벨 테스트 · 진도/체크포인트 · 출퇴근 세션 계획 · 암호화 저장소
+english/speech   정규화 · 규칙 채점 · 명령 · 발음 진단 · 유창성 · Pleos STT/TTS 포트 · 오디오 환경
+english/drive    부하 엔진 · 정책 · 상황 훅 · 기억 궁전 · 출퇴근 판단 · 가상 지도 · 신호 허브 · 미디어 키 · 앰비언트
+english/coach    DefaultEnglishCoach — 세션 상태 기계(브리핑 → 질문 → 듣기 → 채점 → 피드백, 잠시 멈춤/일시정지/요약)
+ui/english       Compose 화면(홈 · 주행 학습 · 학습 · 복습 · 리포트 · 설정 · 핸들 퀴즈 · 온보딩 · 레벨 테스트 · 시연 패널)
+sim              CommuteSimulator — 출근·퇴근·충전·정차 시나리오, 시연 신호 주입
+platform         Pleos 게이트웨이 · SecureVault · Gleo 브리지
+```
+설계 문서: `docs/ENGLISH_APP_SPEC.md`.
+
+## 6. 빌드 · 테스트
+요구 사항: JDK 17~21, Android SDK Platform 36, Gradle 8.14.3(wrapper).
 ```bash
-adb install -r apk/Yeopjari_release.apk
+./gradlew :app:assembleDebug        # 디버그 APK
+./gradlew :app:testDebugUnitTest    # 단위 테스트 332개 (콘텐츠 11 · 코어 13 · 학습 74 · 말하기 116 · 운전 81 · 코치 37)
 ```
-런처에서 **옆자리** 실행 → 권한 허용(위치·차속·에너지) → 첫 화면 **맞춤 AI**의 상황 칩(토요일·대전 가는 길 / 평일 아침·판교 / 토요일 오전·잠실)을 고르고 말하기 또는 예시 문장을 누릅니다.
+Pleos SDK는 `settings.gradle.kts`의 Pleos Maven 저장소에서 받는다.
 
-### 2-2. 소스 빌드 · 테스트
-요구 사항: Android Studio Narwhal 3 Feature Drop(2025.1.3) 이상(AGP 8.13.2), **JDK 17~21**, Android SDK Platform 36(compileSdk 36), Gradle 8.14.3 (wrapper 포함)
-
+## 7. 시연 (디버그 빌드 또는 ADB 켜짐일 때만 동작)
+화면 왼쪽 아래 **시연** 버튼으로 시연 패널(시나리오 · 운전 신호 · 답 주입 · 음성 명령 · 미디어 키 · 배속)을 연다. adb로도 같은 일을 할 수 있다(에뮬레이터 지정 필수):
 ```bash
-./gradlew :app:assembleDebug          # 디버그
-./gradlew :app:assembleRelease        # 릴리스 (keystore.properties 없으면 debug 키로 서명)
-./gradlew :app:testDebugUnitTest      # 개인화 엔진 단위 테스트 + 정확도 평가 (docs/eval/personal_eval.md 생성)
+A="adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity"
+$A --ez en_seed true                      # 가상 학습 기록(6일 연속·복습 카드·기억 궁전) 채우기
+$A --es en_scenario MORNING               # MORNING | EVENING | CHARGING | PARKED | STOP
+$A --es signal TURN_ON                    # TURN_ON | TURN_OFF | INTERSECTION | HARD_BRAKE | RAIN_ON | RAIN_OFF | JAM | CRUISE_ON | CRUISE_OFF | NAV_PROMPT | NEAR_ARRIVAL | ARRIVE | TUNNEL | SCHOOL_ZONE ...
+$A --es hear "Can we push the meeting to tomorrow?"   # STT 결과와 같은 길로 답 넣기
+$A --es answer CORRECT                    # CORRECT | PARTIAL | WRONG | L1_ERROR | DONT_KNOW (지금 문항 기준)
+$A --es key NEXT                          # NEXT | PREVIOUS | PLAY_PAUSE (핸들 버튼과 같은 길)
+$A --es screen REPORT                     # HOME | DRIVE | LESSON | REVIEW | REPORT | RACE | SETTINGS
+$A --es timescale 6 | --es steer -40 | --ez brake true | --ez en_reset true
 ```
-Pleos Connect SDK 는 공식 Maven 저장소에서 자동으로 받아옵니다 (`settings.gradle.kts`):
-```kotlin
-maven { url = uri("https://nexus-playground.pleos.ai/repository/maven-releases/") }
-```
+Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n com.yeopjari.app/.MainActivity --es ACTION_PARAM '{\"track\":\"travel\"}'"`,
+`adb -s emulator-5554 shell "am broadcast -a SAVE_EXPRESSION -n com.yeopjari.app/.platform.gleo.GleoActionReceiver --es ACTION_PARAM '{\"text\":\"Let us call it a day.\"}'"`.
 
-### 2-3. 명령 해석 LoRA 학습 (GPU)
-`ml/README.md` 참고 — `bash ml/run_gpu.sh` (데이터 생성 → Qwen3-0.6B LoRA 학습 → 평가). NVIDIA B200 1/7 MIG(약 23GB)에서 돌아가도록 구성했습니다.
+권장 발표 흐름: `en_seed` → MORNING(브리핑 "출근길 32분 → 새 표현 6개 + 복습 10개") → 정답 주입(초록 펄스) → TURN_ON(잠시 멈춤 "방향지시등") → TURN_OFF("아까 그 문제 다시 할게요") → 터널 상황 표현 → CRUISE_ON(여유, 토익 질문) → HARD_BRAKE(즉시 정지) → L1_ERROR(발음 피드백) → JAM → 정체 탈출 표현 → NEAR_ARRIVAL(배속 2배로 낮춤, 오늘의 한 문장) → ARRIVE(요약) → 정차: 리포트 · 핸들 퀴즈.
 
----
-
-## 3. 테스트 환경 및 설정
-
-| 항목 | 값 |
-|---|---|
-| 에뮬레이터 | **Pleos Connect v2.1.0** (System Image: `system-images;android-34;pleos_car_emulator;x86_64`, Android 14 / API 34) |
-| 화면 규격 | **2560 × 1440 px, 160 dpi (mdpi), 12.8″** — 가로 전체·반쪽 세로 창·12.9″~17″ 폼팩터 반응형 |
-| AVD 권장 설정 | Cold boot, RAM 4GB 이상, Graphics: Hardware |
-| 추가 도구 | Virtual Console (`adb forward tcp:8088 tcp:8088` → http://127.0.0.1:8088) |
-
-### 시연 자동화 (adb, 에뮬레이터 지정)
-```bash
-# 상황 재현: P_DAEJEON(토요일·대전 가는 길) · P_WEEKDAY(평일 아침·판교) · P_WEEKEND(토요일 오전·잠실)
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es scenario P_DAEJEON
-# STT 최종 텍스트와 같은 경로로 말 넣기 (대화창을 열지 않고 HUD 유지)
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es hear "서심다응 가자"
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es hear "아니야"
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es hear "1번"
-# 정차로 바꿔 분석 화면 보기 · 학습 초기화 / 기록 삭제 / 복원 / 변화량 전송(모의)
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es gear P
-adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity --es personal reset   # erase · restore · sync
-```
-전체 시연 녹화: `bash tools/record_personal_demo.sh` → `docs/demo/yeopjari_personal_demo.mp4`
-
-### Gleo Interface 테스트 (adb 로 Gleo Action 재현)
-```bash
-adb shell am start -a GO_TO_MY_PLACE -p com.yeopjari.app --es ACTION_PARAM '{"place":"서심다응","stop_type":"waypoint"}'
-adb shell am start -a PLAN_EV_TRIP -p com.yeopjari.app --es ACTION_PARAM '{"destination":"강릉","companions":"kids"}'
-adb shell am broadcast -a START_CARE_MODE -p com.yeopjari.app --es ACTION_PARAM '{"mode":"pet","temperature":22}'
-```
-
-### Virtual Console 로 확인할 수 있는 반응
-| Virtual Console 조작 | 옆자리 반응 |
-|---|---|
-| Gear → D | 주행 중 화면: HUD 시뮬레이터 + 큰 버튼 3개만(분석 패널 숨김) |
-| Gear P + Door Position(운전석) Open | 펫 케어 제안(반려견 동승 시) / 뒷좌석 확인 |
-| Battery SOC 낮춤 · Charge Switch ON | 충전 필요 예측 · 충전 세션·과태료 타이머 |
-| Telltales → TPMS On | 경고등 해설 |
-
----
-
-## 4. 정확도 평가 (요약)
-
-가상 운전자 1명이 엔진이 본 적 없는 미래 4주 동안 간 곳 41건을 세 가지 말투(이름 그대로 · 음성인식 오류가 섞인 이름 · "빵집" 같은 종류어)로 불러 만든 **질의 121개**입니다. 앱의 엔진 코드를 그대로 JVM 테스트로 돌렸습니다(`./gradlew :app:testDebugUnitTest`, seed 고정, 손으로 고친 숫자 없음).
-
-| 방법 | Top-1 | HUD 3개 안에 정답 | 확인 없이 엉뚱한 곳 출발 | 바로 맞게 출발 |
-|---|---:|---:|---:|---:|
-| A 일반 검색(글자 일치 + 가까운 순) | 38.0% | 51.2% | 0.0% | 34.7% |
-| B 발음 보정만 | 62.0% | 100.0% | 0.0% | 53.7% |
-| **C 발음 + 개인 기록 (옆자리)** | **95.0%** | **100.0%** | **0.0%** | 56.2% |
-| **D C + 차 안 학습** | **95.0%** | 100.0% | **0.0%** | **73.6%** |
-
-- 음성인식 오류가 섞인 이름만 보면 A 0% → B 63.4% → **C 95.1%**입니다.
-- 평가 데이터를 5번 새로 뽑아 반복한 평균 Top-1은 A 38.5% · B 66.1% · C 95.9% · D 95.9%입니다.
-- 장소 사전에 없는 곳(처음 가는 흔한 목적지 25곳 × 상황 4개)을 말하면, 발음 보정만 쓰는 B는 52%를 엉뚱한 아는 곳으로 바로 출발시켰고 옆자리(C·D)는 0%였습니다. 확신이 낮으면 바로 출발하지 않고 되묻기 때문입니다.
-- 한계: 합성 페르소나와 흉내 낸 음성인식 오류로 잰 값입니다. 실제 주행 기록과 실제 STT 결과로 다시 재야 합니다. 상세 내용(신뢰구간, 부호검정, 기간별 결과, 실패 사례)은 [`docs/eval/personal_eval.md`](docs/eval/personal_eval.md)에 있습니다.
-
----
-
-## 5. 아키텍처
-
-```
-STT SDK 텍스트 ─▶ 명령 해석(Qwen3-0.6B+LoRA 목표 / 규칙 대체물) ─▶ 개인화 보정 엔진(차 안)
-   발음 유사도 × [자주·시간대·거리/경로·최근·선호] → softmax → 바로 실행 · 확인 · HUD 선택지(≤3)
-   ─▶ NaviHelper 안내 · TTS · 앞유리 HUD 시뮬레이터 ─▶ 선택 즉시 학습(가중치 6개·표현 기억)
-   ─▶ (선택 동의) 서명된 가중치 변화량만 연합학습 서버로
-```
-
-| 패키지 | 역할 |
-|---|---|
-| `ai/personal` | **개인화 보정 엔진** — Hangul(발음 비교), QueryParser, PersonalBrain(순위·학습), PersonaFactory(가상 운전자), PrivacyLedger(해시 체인·연합 업데이트), PersonalService |
-| `platform/secure` | SecureVault — Android Keystore AES-256-GCM 암호화 저장, ECDSA P-256 서명 |
-| `ai/nlu` · `ai/cloud` | 온디바이스 명령 해석 / 추론 LLM 인터페이스와 대체 구현 |
-| `ai/context` · `ai/tools` | 컨텍스트 엔진(충전·졸음·펫 등), Function Calling 툴 레지스트리 |
-| `platform/pleos` · `platform/gleo` · `platform/hub` | Pleos SDK 실연동, Gleo Interface, SDK⇄시뮬레이터 전환 |
-| `ui` | 디자인 시스템, 셸, **PersonalScreen(맞춤 AI)** · **HudView(앞유리 HUD 시뮬레이터)** · 기타 화면 |
-| `ml/` | 명령 해석 LoRA 데이터 생성·학습·평가 파이프라인 |
-
-자세한 설계: [`docs/AI_ARCHITECTURE.md`](docs/AI_ARCHITECTURE.md) · 기획서 원고: [`docs/PROPOSAL.md`](docs/PROPOSAL.md)
-
----
-
-## 6. 정책·안전·개인정보
-- 차량 마이크 음성은 **Pleos SpeechToText SDK(온디바이스)** 로만 처리합니다. 외부 STT로 보내지 않고, 앱은 STT 텍스트 뒤에서 보정합니다.
-- HUD 그리기 API가 공개 SDK에 없어 앱 안 **HUD 시뮬레이터**로 재현했습니다. HUD가 없는 차량을 위해 중앙 화면 큰 버튼과 음성도 같은 선택지를 제공합니다.
-- 주행 중: HUD와 큰 버튼(≥76dp) 3개만 보이고, 분석 패널·키보드·장문은 숨깁니다. 영상은 차단합니다.
-- 개인 방문 기록·기억한 표현·가중치는 **차 안 암호화 저장소에만** 둡니다. "내 기록 지우기"로 즉시 삭제됩니다.
-- 학습 기록은 해시 체인으로 위·변조를 검증합니다. 서버로 보낼 수 있는 것은 클리핑·잡음·서명을 거친 **가중치 변화량 6개**뿐이고, 화면에서 그대로 미리 보여 줍니다.
-- Release: 서명 키 별도 보관(`keystore.properties`, 저장소 제외), debuggable=false
-
-## 7. 제출물·자료 위치
-
-| 자료 | 경로 |
-|---|---|
-| 접수양식(기획서) — 이메일 제출용이라 저장소에는 넣지 않음. 같은 내용의 원고는 `docs/PROPOSAL.md` | (저장소 미포함) |
-| 별지: 화면 시안 | `docs/submission/옆자리_별지_화면시안.pdf` |
-| 시연 영상 — 개인화 보정·HUD (에뮬레이터 실구동) | `docs/demo/yeopjari_personal_demo.mp4` |
-| 시연 영상 — 생활 기능 8개 시나리오 (1차본) | `docs/demo/yeopjari_demo.mp4` |
-| 정확도 평가 보고서 | `docs/eval/personal_eval.md` |
-| 명령 해석 LoRA 파이프라인 | `ml/` |
-| Gleo App Schema | `app/src/main/assets/schema.json` |
-| 빌드·설치 / 캡처 / 시연 녹화 스크립트 | `tools/build_install.sh` · `tools/capture.sh` · `tools/record_personal_demo.sh` · `tools/record_demo.sh` |
-
-> APK 파일명 규칙은 `팀명_앱이름_release.apk` 입니다. 제출 전 `apk/Yeopjari_release.apk` 를 `<팀명>_옆자리_release.apk` 로 바꿔 주세요.
-
-## 8. 데모 데이터 고지
-가상 운전자 '서준'의 장소 21곳과 90일 방문 기록은 **시연·평가용 합성 데이터**입니다(좌표는 근사치, 실제 상호의 영업 정보와 무관). 실차에서는 P 기어 주차 위치·NaviHelper 목적지 이력·FusedLocation 체류 기록이 이 자리를 채웁니다. 충전소 가용 대수·가격 등 생활 기능의 수치도 시연용 가상 데이터입니다.
+## 8. 알려진 한계
+- 에뮬레이터의 Pleos STT는 영어를 알아듣지 못할 수 있다 → 시연은 답 주입(`hear` · `answer` · 시연 패널)으로, 실차에서는 같은 코드가 STT 결과를 받는다.
+- 핸들 각도 부호, 앰비언트 색 형식(0xRRGGBB), 핸들 미디어 버튼의 MediaSession 전달은 실차에서 다시 확인해야 한다.
+- 학습자 응답 이해 LoRA는 합성 데이터로만 평가했고 앱에 넣지 않았다.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 옆자리 아이콘: AI 오브(그라디언트 원) + 좌석 실루엣 -->
+<!-- 옆자리 영어 아이콘: 그라디언트 원 + 좌석 실루엣 (차 안 옆자리 코치) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"

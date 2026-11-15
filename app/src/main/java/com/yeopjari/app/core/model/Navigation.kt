@@ -1,5 +1,9 @@
 package com.yeopjari.app.core.model
 
+import com.yeopjari.app.english.core.CameraAhead
+import com.yeopjari.app.english.core.CautionAhead
+import com.yeopjari.app.english.core.Maneuver
+
 enum class PlaceKind(val label: String) {
     HOME("집"), WORK("회사"), CHARGER("충전소"), REST_AREA("휴게소"), DROWSY_SHELTER("졸음쉼터"),
     CAFE("카페"), RESTAURANT("식당"), PARK("공원"), SERVICE("서비스센터"), KIDS("키즈 시설"),
@@ -69,6 +73,17 @@ data class RouteState(
     val naviEstimatedSoc: Int? = null,
     /** NaviHelper onCurrentRoadSpeedLimit — HUD 제한속도 표시 */
     val speedLimitKph: Int? = null,
+    // ── 운전 부하 신호 (옆자리 영어 · NaviHelper TBT/카메라/주의 구간/남은 시간) ──
+    /** 다음 안내 지점 (onTBTInfo 첫 항목) */
+    val maneuver: Maneuver? = null,
+    /** 가장 가까운 단속 카메라 (onCameraAlert) */
+    val camera: CameraAhead? = null,
+    /** 가장 가까운 주의 구간 (onCautionPointInfo, 어린이 보호구역 등) */
+    val caution: CautionAhead? = null,
+    /** 남은 시간(초) — onDestinationInfo.remainTime */
+    val remainingSec: Int? = null,
+    /** 남은 거리(m) — onDestinationInfo.remainDistance */
+    val remainingM: Int? = null,
 ) {
     val progress: Float get() = if (totalKm <= 0f) 0f else (1f - remainingKm / totalKm).coerceIn(0f, 1f)
 }

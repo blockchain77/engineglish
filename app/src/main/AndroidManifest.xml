@@ -8,34 +8,36 @@
     <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
-    <!-- 클라우드 추론 LLM 서버 통신 (TLS 1.2+) -->
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+        옆자리 영어는 서버와 통신하지 않는다 (학습 기록·채점 모두 차 안).
+        마이크 권한(RECORD_AUDIO)도 없다: 차량 마이크 음성은 Pleos SpeechToText SDK 로만 받는다.
+    -->
 
-    <!-- AAOS Car API: 표준 차량 데이터 (속도·기어·외기온·주행가능거리·충전 속도) -->
+    <!-- AAOS Car API: 차속 (운전 부하 판단) — dangerous, 런타임 요청 -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />
-    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
-    <uses-permission android:name="android.car.permission.CAR_EXTERIOR_ENVIRONMENT" />
-    <uses-permission android:name="android.car.permission.CAR_ENERGY" />
 
-    <!-- Pleos Vehicle SDK (읽기 · 제어) — 앱 기능에 필요한 최소 권한만 선언 -->
-    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
-    <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
-    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
-    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
-    <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
-    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <!-- Pleos Vehicle SDK (운전 부하 신호 · 앰비언트 피드백) — 필요한 최소 권한만 -->
+    <!-- 기어 · 핸들 각도 · 브레이크 · 크루즈 -->
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <!-- 방향지시등 · 전조등(로빔) · 앰비언트 색 읽기 -->
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <!-- 정답/오답 1초 앰비언트 펄스 -->
+    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_LIGHTS" />
+    <!-- 와이퍼 (비 오는 날 상황 표현 · 야간 빗길 집중) -->
+    <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />
+    <!-- 충전 중 · 배터리 잔량 (충전소 정차 학습) -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
 
-    <!-- Pleos NaviHelper SDK -->
+    <!-- Pleos NaviHelper SDK: 안내 지점(TBT) · 단속 카메라 · 주의 구간 · 남은 시간 · 도착 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <!-- (설정에서 켤 때만) 시뮬레이터 경로를 실제 내비에 반영 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
-    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />
 
     <!-- Pleos SpeechToText / TextToSpeech SDK (온디바이스 모드) -->
     <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
-    <!-- Pleos FusedLocation SDK (dangerous → 런타임 요청) -->
+    <!-- Pleos FusedLocation SDK: 출퇴근 경로 구간(경로 띠 · 출퇴근 판단) — dangerous, 런타임 요청 -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
 
     <application
@@ -47,7 +49,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Yeopjari">
 
-        <!-- 회전 컨트롤러(CCP) 미지원 선언: 모든 기능은 터치·음성으로 사용 가능 -->
+        <!-- 회전 컨트롤러(CCP) 미지원 선언: 모든 기능은 터치·음성·핸들 미디어 버튼으로 사용 가능 -->
         <meta-data android:name="com.hmg.rotary.ROTARY_SUPPORTED" android:value="false" />
 
         <activity
@@ -57,7 +59,7 @@
             android:resizeableActivity="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
-            <!-- 주행 중 사용 가능 (주의분산 최적화) — 화면 내부는 CarUxRestrictions 에 따라 간소화 -->
+            <!-- 주행 중 사용 가능 (주의분산 최적화) — 주행 중에는 주행 학습 화면만 조작할 수 있다 -->
             <meta-data android:name="distractionOptimized" android:value="true" />
 
             <intent-filter>
@@ -67,21 +69,21 @@
 
             <!-- Gleo Interface (App Schema) — component: activity -->
             <intent-filter>
-                <action android:name="PLAN_EV_TRIP" />
+                <action android:name="START_ENGLISH_SESSION" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="GO_TO_MY_PLACE" />
+                <action android:name="REVIEW_NOW" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <!-- Gleo Interface (App Schema) — component: service (UI 없이 백그라운드 실행) -->
+        <!-- Gleo Interface (App Schema) — component: service (화면 없이 표현 저장) -->
         <receiver
             android:name=".platform.gleo.GleoActionReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="START_CARE_MODE" />
+                <action android:name="SAVE_EXPRESSION" />
             </intent-filter>
         </receiver>
     </application>

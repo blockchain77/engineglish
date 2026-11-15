@@ -44,4 +44,29 @@ object Y {
     val AiGradientH = Brush.horizontalGradient(listOf(Cyan, Periwinkle, Violet))
     val CardGlow = Brush.verticalGradient(listOf(Color(0x14FFFFFF), Color(0x05FFFFFF)))
     val Scrim = Brush.verticalGradient(listOf(Color(0x00000000), Color(0xCC000000)))
+
+    // ───────── 옆자리 영어 (차량용 다크 테마 · 강조색 하나) ─────────
+
+    /** 단 하나의 강조색 — 버튼·선택·진행 표시 */
+    val Accent = Color(0xFF5EE6FF)
+    val AccentSoft = Color(0x295EE6FF)
+    val OnAccent = Color(0xFF03131A)
+
+    /** 운전 부하 단계 색 — 정차 파랑 · 여유 초록 · 보통 청록 · 집중 주황 · 위험 빨강 */
+    val LoadParked = Color(0xFF4DA3FF)
+    val LoadRelaxed = Color(0xFF3EE6A0)
+    val LoadNormal = Color(0xFF2FD3C4)
+    val LoadFocus = Color(0xFFFFB547)
+    val LoadCritical = Color(0xFFFF5C6C)
+
+    /** 채점 색 (앰비언트 펄스와 같은 색) */
+    val Correct = Color(0xFF2EE66B)
+    val Retry = Color(0xFFFFB020)
+    val Miss = Color(0xFFFF7A7A)
+
+    /** 앞유리 HUD 투사 색 */
+    val Hud = Color(0xFF8CF5E6)
+
+    /** 화면을 덮는 시트 뒤 */
+    val Dim = Color(0xB3000000)
 }

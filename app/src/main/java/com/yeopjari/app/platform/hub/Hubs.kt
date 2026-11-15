@@ -55,8 +55,11 @@ class NaviHub(
     private val sim: NaviGateway,
     private val mode: StateFlow<Source>,
     private val realConnected: StateFlow<Boolean>,
-    /** 시나리오 재생 중 경로 변경을 실제 차량 내비에도 반영할지 (시연 녹화 때 기본 내비가 매번 앞으로 나오지 않게 끌 수 있다) */
-    private val mirrorToCar: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true),
+    /**
+     * 시나리오 재생 중 경로 변경을 실제 차량 내비에도 반영할지.
+     * 기본 꺼짐 — 시뮬레이터 경로가 실차 내비를 오염시키지 않게 (설정에서 켤 때만 반영).
+     */
+    private val mirrorToCar: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false),
 ) : NaviGateway {
     override val source: Source get() = mode.value
     override val route: StateFlow<RouteState> =

@@ -4,7 +4,6 @@ import com.yeopjari.app.core.model.GeoPoint
 import com.yeopjari.app.core.model.Place
 import com.yeopjari.app.core.model.RouteState
 import com.yeopjari.app.core.model.VehicleSnapshot
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -48,26 +47,13 @@ interface LocationGateway {
     val location: StateFlow<GeoPoint?>
 }
 
-sealed interface SttEvent {
-    data object Ready : SttEvent
-    data class Partial(val text: String) : SttEvent
-    data class Final(val text: String) : SttEvent
-    data class Error(val message: String) : SttEvent
-    data object End : SttEvent
-}
-
-/** 음성 입력 — 차량 마이크 음성은 반드시 Pleos SpeechToText SDK로만 처리한다 (외부 STT 전송 금지) */
-interface SpeechInput {
-    val available: Boolean
-    val events: Flow<SttEvent>
-    fun start()
-    fun stop()
-}
-
-/** 음성 출력 — Pleos TextToSpeech SDK */
-interface SpeechOutput {
-    val available: Boolean
-    val speaking: StateFlow<Boolean>
-    fun speak(text: String, utteranceId: String = System.currentTimeMillis().toString())
-    fun stop()
+/**
+ * 앰비언트 라이트 색 (Pleos Vehicle SDK · Light.get/setAmbientLightBrightnessColor) — 정답/오답 1초 펄스용.
+ * 읽기는 CAR_LIGHTS, 쓰기는 CONTROL_CAR_LIGHTS 권한이 필요하다. 실패·미지원이면 null / false.
+ */
+interface AmbientLightGateway {
+    /** 지금 운전석 앰비언트 색 (RGB int). 못 읽으면 null */
+    suspend fun readColor(): Int?
+    /** 색 바꾸기 (RGB 0xRRGGBB). 성공하면 true */
+    suspend fun writeColor(rgb: Int): Boolean
 }

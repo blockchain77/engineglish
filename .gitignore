@@ -24,19 +24,21 @@ build/
 *.pem
 .env
 
-# ml/ 파이프라인 산출물 — 가상환경·학습 결과(LoRA·병합 가중치·로그)·변환 모델은 커밋하지 않는다 (ml/README §10)
+# ml/ 파이프라인 산출물 — 가상환경·학습 결과(LoRA·병합 가중치·로그)·변환 모델은 커밋하지 않는다 (ml/english/README.md)
 __pycache__/
 *.py[cod]
 .venv/
 /ml/out/
+/ml/english/out/
+/ml/english/data/
+/ml/english/*.log
 /llama.cpp/
 *.gguf
 *.safetensors
 
 # 공모전 접수양식: 현대차그룹 정보자산 문구가 있고 개인정보·서명을 기입하는 파일이라 이메일로만 제출
-# PDF·HWP로 내보낸 사본까지 막도록 폴더 전체를 제외하고, 공개용 별지 화면 시안만 예외로 둔다
+# PDF·HWP로 내보낸 사본까지 막도록 폴더 전체를 제외한다
 /docs/submission/*
-!/docs/submission/옆자리_별지_화면시안.pdf
 *접수양식*
 *.docx
 *.hwp
@@ -48,3 +50,7 @@ Thumbs.db
 desktop.ini
 hs_err_pid*.log
 replay_pid*.log
+
+# 내부 조사 자료(공개 저장소에 올리지 않음)
+/reports/
+/research_notes/

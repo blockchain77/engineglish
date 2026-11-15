@@ -15,15 +15,15 @@ val keystoreProps = Properties().apply {
 android {
     namespace = "com.yeopjari.app"
     compileSdk = 36
-    // AAOS Car API (속도·기어·외기온·주행가능거리·UX 제한) — Pleos 문서 권장: 표준 데이터는 CarPropertyManager 사용
+    // AAOS Car API (차속 · 주의분산 제한 CarUxRestrictions) — Pleos 문서 권장: 표준 데이터는 CarPropertyManager 사용
     useLibrary("android.car")
 
     defaultConfig {
         applicationId = "com.yeopjari.app"
         minSdk = 28
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "2.0.0"
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -74,7 +74,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -85,7 +84,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.datastore.preferences)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation("junit:junit:4.13.2")
 }

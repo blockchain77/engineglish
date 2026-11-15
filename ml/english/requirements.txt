@@ -1,0 +1,7 @@
+# 옆자리 영어 응답 이해 LoRA — GPU 서버(Linux + NVIDIA)용. 최소 버전만 지정한다.
+# B200 등 Blackwell GPU 는 CUDA 12.8 이상으로 빌드된 torch 가 필요하다.
+torch>=2.4
+transformers>=4.51.0   # Qwen3 지원 시작 버전
+peft>=0.14.0
+accelerate>=1.0.0
+datasets>=3.0.0

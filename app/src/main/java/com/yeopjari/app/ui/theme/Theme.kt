@@ -8,8 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
 private val scheme = darkColorScheme(
-    primary = Y.Cyan,
-    onPrimary = Y.Bg0,
+    primary = Y.Accent,
+    onPrimary = Y.OnAccent,
+    primaryContainer = Y.AccentSoft,
+    onPrimaryContainer = Y.Accent,
     secondary = Y.Periwinkle,
     onSecondary = Y.Bg0,
     tertiary = Y.Violet,
@@ -19,7 +21,13 @@ private val scheme = darkColorScheme(
     onSurface = Y.Text1,
     surfaceVariant = Y.Bg3,
     onSurfaceVariant = Y.Text2,
+    surfaceContainerLowest = Y.Bg0,
+    surfaceContainerLow = Y.Bg1,
+    surfaceContainer = Y.Bg2,
+    surfaceContainerHigh = Y.Bg3,
+    surfaceContainerHighest = Y.Bg4,
     outline = Y.Stroke,
+    outlineVariant = Y.Bg4,
     error = Y.Red,
 )
 

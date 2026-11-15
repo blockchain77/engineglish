@@ -31,7 +31,7 @@ class PleosLocationGateway(private val context: Context) : LocationGateway {
             _location.value = GeoPoint(location.latitude, location.longitude, location.heading)
             _lastFixMillis.value = System.currentTimeMillis()
         }
-        override fun onError(exception: Exception) { Log.d(TAG, "location error: ${exception.message}") }
+        override fun onError(exception: Exception) { Log.d(TAG, "location error: ${exception.javaClass.simpleName}") }
     }
 
     fun start() {

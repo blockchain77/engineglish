@@ -1,5 +1,7 @@
 package com.yeopjari.app.core.model
 
+import com.yeopjari.app.english.core.TurnSignalState
+
 /** 변속 상태 (Pleos Vehicle SDK · Gear 도메인 VehicleGear 매핑) */
 enum class Gear(val label: String) { P("P"), R("R"), N("N"), D("D"), UNKNOWN("-") }
 
@@ -78,6 +80,19 @@ data class VehicleSnapshot(
     val occupants: Set<Seat> = setOf(Seat.DRIVER),
     /** 위치 신호 품질 — 지하주차장 진입 감지에 사용 (FusedLocation confidence) */
     val gpsGood: Boolean = true,
+    // ── 운전 부하 신호 (옆자리 영어 · Vehicle SDK TurnSignal/SteeringWheel/Brake/DrivingMode/Wiper/Light) ──
+    /** 방향지시등 */
+    val turnSignal: TurnSignalState = TurnSignalState.OFF,
+    /** 핸들 각도 (+오른쪽 / −왼쪽) */
+    val steeringDeg: Float = 0f,
+    /** 브레이크 페달 밟음 */
+    val brakePedal: Boolean = false,
+    /** 크루즈 컨트롤 작동 중 (CruiseControl.ACTIVATED 만 true) */
+    val cruiseActive: Boolean = false,
+    /** 앞유리 와이퍼 작동 (WiperState.ON) */
+    val wipersOn: Boolean = false,
+    /** 전조등(로빔) 켜짐 — 주간주행등은 제외 */
+    val headlightsOn: Boolean = false,
 ) {
     val driveMode: DriveMode
         get() = when {

@@ -26,3 +26,19 @@ val YTypography = Typography(
     labelMedium = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, letterSpacing = 0.2.sp),
     labelSmall = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp, letterSpacing = 0.4.sp),
 )
+
+/**
+ * 옆자리 영어 전용 글자 스타일 — 주행 화면 문제는 34sp 이상, 숫자는 고정폭 숫자(tnum).
+ */
+object YType {
+    /** 주행 화면 문제 (자동 맞춤 최대 크기) */
+    val DrivePrompt = TextStyle(fontSize = 52.sp, fontWeight = FontWeight.Bold, lineHeight = 64.sp, letterSpacing = (-0.5).sp)
+    /** 주행 화면 문제 최소 크기 — 이보다 작게 줄이지 않는다 */
+    const val DRIVE_PROMPT_MIN_SP = 34
+    /** 정차 중 영어 문장 */
+    val English = TextStyle(fontSize = 36.sp, fontWeight = FontWeight.SemiBold, lineHeight = 46.sp)
+    val Hero = TextStyle(fontSize = 44.sp, fontWeight = FontWeight.Bold, lineHeight = 54.sp, letterSpacing = (-0.5).sp)
+    val Metric = TextStyle(fontSize = 44.sp, fontWeight = FontWeight.Bold, lineHeight = 50.sp, fontFeatureSettings = "tnum")
+    val MetricSmall = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp, fontFeatureSettings = "tnum")
+    val Eyebrow = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, lineHeight = 20.sp, letterSpacing = 1.2.sp)
+}
