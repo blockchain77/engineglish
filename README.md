@@ -22,7 +22,7 @@
 ### 2-1. 운전 부하 엔진 (`english/drive/RuleLoadEngine.kt`, `TableLoadPolicy.kt`)
 | 단계 | 언제 | 앱이 하는 일 |
 |---|---|---|
-| 정차 PARKED | P단, 충전 중 정차 | 전체 화면 학습 — 레벨 테스트, 화면 보기 문제, 복습, 리포트, 핸들 퀴즈 |
+| 정차 PARKED | P단, 충전 중 정차 | 전체 화면 학습 — 레벨 테스트, 화면 보기 문제, 복습, 리포트, 주차 대시보드 |
 | 여유 RELAXED | 크루즈 주행, 15초 넘게 이어진 고속 직진 | 토익 스피킹(최대 45초 답변) + 아래 모두 |
 | 보통 NORMAL | 시내 주행, 정체(가다 서다) | 듣고 따라 말하기, 한→영 문장 만들기(12단어 이하), 단어 떠올리기 |
 | 집중 FOCUS | 방향지시등, 교차로·나들목 300m(또는 8초) 이내, 큰 핸들 조작, 단속 카메라 200m, 어린이 보호구역, 야간 빗길 | 새 질문 없음, 듣기 중단, 2초 안에 끝나는 말만 마무리 |
@@ -41,8 +41,13 @@
 
 ### 2-3. 출퇴근 맞춤 (`CommuteSessionPlanner`, `RouteCommuteDetector`)
 - 집→회사 = 출근길(기본: 새 표현), 회사→집 = 퇴근길(기본: 오늘 틀린 표현 + 복습 예정 카드). 설정에서 시간대별로 바꿀 수 있다.
-- 남은 운전 시간으로 분량을 정한다: "출근길 32분 → 새 표현 6개 + 복습 10개". 도착 3분 전에는 '오늘의 한 문장'으로 마무리, 도착하면 요약.
-- 출발하면 자동 시작(설정), 출발 시각을 배워 출근 15분 전 제안.
+- 남은 운전 시간으로 분량을 정한다: "출근길 32분 → 새 표현 6개 + 복습 10개".
+- **도착 1분 전에는 학습을 끝낸다.** 묻던 문제는 접고(틀린 걸로 치지 않는다) "곧 도착해요. 오늘 학습은 여기까지 할게요." 한마디만 하고, 주차할 때까지 더 묻지 않는다.
+- 출근길은 출발하면 자동 시작(설정). **퇴근길은 먼저 묻는다** — "퇴근길에도 영어 복습할까요?"
+  - 말로 답하거나("응", "네", "좋아", "할게", "yes", "sure", "okay" / "아니", "괜찮아", "쉴게", "다음에", "no", "not today") 화면의 큰 버튼 두 개(할게요 / 오늘은 쉴게요)를 누른다.
+  - 10초 안에 답이 없거나 운전이 바빠지면(집중 이상) 질문을 거두고, 여유가 생겼을 때 한 번만 다시 묻는다. 그래도 답이 없으면 조용히 넘어간다.
+  - 설정 '퇴근길 학습': 물어보기(기본) · 항상 시작 · 안 함.
+- 출발 시각을 배워 출근 15분 전 제안.
 
 ### 2-4. 손을 쓰지 않는 말하기와 발음 피드백 (`english/speech/**`)
 - 한국어 안내와 영어 문장은 Pleos TTS(영어가 안 되면 Android TTS en-US), 답은 Pleos STT(en-US)로 받는다.
@@ -52,11 +57,11 @@
 - 음성 명령(영·한): repeat/다시, slower/천천히, skip/넘겨, hint/힌트, meaning/뜻, pause/잠깐, continue/계속, 모르겠어요, 그만.
 
 ### 2-5. 차라서 할 수 있는 것
-- **길 위의 기억 궁전**: 운전 중 처음 배운 표현을 그때 지나던 구간에 묶고, 다음에 같은 구간을 지나면 그 표현부터 다시 묻는다.
+- **주차 대시보드**: 주행 학습을 마치고 P단에 넣으면 전체 화면으로 오늘 결과(학습 시간 · 답한 문장 · 정확도 · 평균 응답 시간 · 새 표현 · 복습 · 발음 약점과 예시)와 진행률(레벨·유닛 막대, 오늘 목표 링, 연속 학습일, XP)을 보여 준다. 마스코트가 완료 징글과 함께 "오늘도 수고했어요!" 하고 축하한다. '틀린 표현 복습' · '홈으로', 홈의 '지난 학습 결과'에서 다시 볼 수 있다.
+- **효과음**: 정답이면 밝은 마림바 아르페지오, 거의 맞으면 부드러운 음, 틀리면 낮고 순한 음. 연속 정답 5개 · 레벨 업 · 학습 완료는 짧은 팡파르. 모두 직접 합성한 소리(`tools/gen_sounds.py` → `res/raw/sfx_*.wav`)이고, 오디오 포커스를 잡지 않아 안내 음성을 끊지 않는다. 운전 부하가 '위험'이면 울리지 않는다. 설정 '효과음'으로 끌 수 있다.
 - **방금 그 상황 표현**: 정체를 빠져나오면 "I was stuck in traffic.", 와이퍼가 켜지면 "It's pouring.", 터널·어린이 보호구역·회사 도착·충전·공항 목적지(여행 트랙 제안).
 - **핸들 미디어 버튼**: 다음 = 넘기기, 이전 = 다시, 재생/일시정지 = 잠깐/계속 (Activity 키 이벤트 + MediaSession).
 - **앞유리 HUD 힌트**: 듣는 동안 힌트 한 단어만(단어 문제는 첫 글자만 "r _ _ _ _"). 정답/아쉬움은 1초 앰비언트 라이트 색(초록/주황) + 화면 가장자리 빛.
-- **정차 핸들 퀴즈**: P단에서 핸들을 돌려 정답 차로를 고르고 브레이크를 밟아 확정(에뮬레이터는 시연 슬라이더).
 
 ### 2-6. 안전·차량 UX
 - 주행 중(CarUxRestrictions)에는 '주행 학습' 화면만 조작할 수 있고, 다른 화면은 "정차 후 이용할 수 있어요".
@@ -70,7 +75,7 @@
 | `SAVE_EXPRESSION(text?)` | service | 지금 문장(또는 말한 문장)을 차 안 표현 노트에 저장 |
 
 ## 3. 개인정보
-- 학습 기록(진도·복습 카드·발음 기록·출발 시각(분)·표현을 묶은 구간 이름)은 `english_learner_v1.bin` 한 파일에 **AES-256-GCM(Android Keystore 키)**으로 암호화해 이 차 안에만 저장한다. 서버 전송 없음, 목소리 녹음·위치 좌표 저장 없음.
+- 학습 기록(진도·복습 카드·발음 기록·출발 시각(분))은 `english_learner_v1.bin` 한 파일에 **AES-256-GCM(Android Keystore 키)**으로 암호화해 이 차 안에만 저장한다. 서버 전송 없음, 목소리 녹음·위치 좌표 저장 없음.
 - 로그에는 오류 코드만 남긴다(발화·답·위치·장소 이름은 남기지 않음). 설정 → "학습 기록 모두 지우기".
 - 지도는 **가상 출퇴근 지도 "잠실 ↔ 판교"**(공공 랜드마크, 좌표 소수점 3자리)만 쓴다. 학습자는 가상 인물이며 실명·연락처·주소가 없다.
 - 이전 버전(장소 이름 보정)의 개인 장소·방문 기록 파일은 앱이 시작될 때 지운다(지도 정보 초기화).
@@ -86,9 +91,10 @@ english/core     계약(인터페이스) · 모델 · UI 상태 · 임계값 · 
 english/content  JSON 콘텐츠 로더 · 검증(ContentAudit) · 오늘의 한 문장
 english/learn    SRS · 적응형 레벨 테스트 · 진도/체크포인트 · 출퇴근 세션 계획 · 암호화 저장소
 english/speech   정규화 · 규칙 채점 · 명령 · 발음 진단 · 유창성 · Pleos STT/TTS 포트 · 오디오 환경
-english/drive    부하 엔진 · 정책 · 상황 훅 · 기억 궁전 · 출퇴근 판단 · 가상 지도 · 신호 허브 · 미디어 키 · 앰비언트
-english/coach    DefaultEnglishCoach — 세션 상태 기계(브리핑 → 질문 → 듣기 → 채점 → 피드백, 잠시 멈춤/일시정지/요약)
-ui/english       Compose 화면(홈 · 주행 학습 · 학습 · 복습 · 리포트 · 설정 · 핸들 퀴즈 · 온보딩 · 레벨 테스트 · 시연 패널)
+english/drive    부하 엔진 · 정책 · 상황 훅 · 출퇴근 판단 · 가상 지도 · 신호 허브 · 미디어 키 · 앰비언트
+english/coach    DefaultEnglishCoach — 세션 상태 기계(브리핑 → 질문 → 듣기 → 채점 → 피드백, 잠시 멈춤/일시정지/요약) · 퇴근길 질문 · 주차 대시보드
+english/sound    효과음 (SoundPool, 직접 합성한 WAV)
+ui/english       Compose 화면(홈 · 주행 학습 · 학습 · 복습 · 리포트 · 설정 · 주차 대시보드 · 온보딩 · 레벨 테스트 · 시연 패널)
 sim              CommuteSimulator — 출근·퇴근·충전·정차 시나리오, 시연 신호 주입
 platform         Pleos 게이트웨이 · SecureVault · Gleo 브리지
 ```
@@ -98,7 +104,7 @@ platform         Pleos 게이트웨이 · SecureVault · Gleo 브리지
 요구 사항: JDK 17~21, Android SDK Platform 36, Gradle 8.14.3(wrapper).
 ```bash
 ./gradlew :app:assembleDebug        # 디버그 APK
-./gradlew :app:testDebugUnitTest    # 단위 테스트 332개 (콘텐츠 11 · 코어 13 · 학습 74 · 말하기 116 · 운전 81 · 코치 37)
+./gradlew :app:testDebugUnitTest    # 단위 테스트 356개 (콘텐츠 11 · 코어 17 · 학습 73 · 말하기 116 · 운전 78 · 코치 61)
 ```
 Pleos SDK는 `settings.gradle.kts`의 Pleos Maven 저장소에서 받는다.
 
@@ -106,21 +112,31 @@ Pleos SDK는 `settings.gradle.kts`의 Pleos Maven 저장소에서 받는다.
 화면 왼쪽 아래 **시연** 버튼으로 시연 패널(시나리오 · 운전 신호 · 답 주입 · 음성 명령 · 미디어 키 · 배속)을 연다. adb로도 같은 일을 할 수 있다(에뮬레이터 지정 필수):
 ```bash
 A="adb -s emulator-5554 shell am start -n com.yeopjari.app/.MainActivity"
-$A --ez en_seed true                      # 가상 학습 기록(6일 연속·복습 카드·기억 궁전) 채우기
-$A --es en_scenario MORNING               # MORNING | EVENING | CHARGING | PARKED | STOP
+$A --ez en_seed true                      # 가상 학습 기록(6일 연속·복습 카드·틀린 표현) 채우기
+$A --es en_scenario MORNING               # MORNING | EVENING | CHARGING | PARKED | STOP  (EVENING: 3초 달린 뒤 "퇴근길에도 영어 복습할까요?")
 $A --es signal TURN_ON                    # TURN_ON | TURN_OFF | INTERSECTION | HARD_BRAKE | RAIN_ON | RAIN_OFF | JAM | CRUISE_ON | CRUISE_OFF | NAV_PROMPT | NEAR_ARRIVAL | ARRIVE | TUNNEL | SCHOOL_ZONE ...
-$A --es hear "Can we push the meeting to tomorrow?"   # STT 결과와 같은 길로 답 넣기
+$A --es hear "Can we push the meeting to tomorrow?"   # STT 결과와 같은 길로 답 넣기 (퇴근길 질문에는 "응 할게" · "not today")
 $A --es answer CORRECT                    # CORRECT | PARTIAL | WRONG | L1_ERROR | DONT_KNOW (지금 문항 기준)
 $A --es key NEXT                          # NEXT | PREVIOUS | PLAY_PAUSE (핸들 버튼과 같은 길)
-$A --es screen REPORT                     # HOME | DRIVE | LESSON | REVIEW | REPORT | RACE | SETTINGS
-$A --es timescale 6 | --es steer -40 | --ez brake true | --ez en_reset true
+$A --es screen REPORT                     # HOME | DRIVE | LESSON | REVIEW | REPORT | SETTINGS
+$A --es timescale 6 | --ez en_reset true
 ```
 Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n com.yeopjari.app/.MainActivity --es ACTION_PARAM '{\"track\":\"travel\"}'"`,
 `adb -s emulator-5554 shell "am broadcast -a SAVE_EXPRESSION -n com.yeopjari.app/.platform.gleo.GleoActionReceiver --es ACTION_PARAM '{\"text\":\"Let us call it a day.\"}'"`.
 
-권장 발표 흐름: `en_seed` → MORNING(브리핑 "출근길 32분 → 새 표현 6개 + 복습 10개") → 정답 주입(초록 펄스) → TURN_ON(잠시 멈춤 "방향지시등") → TURN_OFF("아까 그 문제 다시 할게요") → 터널 상황 표현 → CRUISE_ON(여유, 토익 질문) → HARD_BRAKE(즉시 정지) → L1_ERROR(발음 피드백) → JAM → 정체 탈출 표현 → NEAR_ARRIVAL(배속 2배로 낮춤, 오늘의 한 문장) → ARRIVE(요약) → 정차: 리포트 · 핸들 퀴즈.
+권장 발표 흐름: `en_seed` → MORNING(브리핑 "출근길 32분 → 새 표현 6개 + 복습 10개") → 정답 주입(초록 펄스) → TURN_ON(잠시 멈춤 "방향지시등") → TURN_OFF("아까 그 문제 다시 할게요") → 터널 상황 표현 → CRUISE_ON(여유, 토익 질문) → HARD_BRAKE(즉시 정지) → L1_ERROR(발음 피드백) → JAM → 정체 탈출 표현 → NEAR_ARRIVAL(도착 1분 전으로, 배속 2배로 낮춤 → "곧 도착해요. 오늘 학습은 여기까지 할게요.") → 도착 · P단 → 주차 대시보드(마스코트 · 완료 징글) → 틀린 표현 복습 → 리포트. 퇴근길: EVENING → "퇴근길에도 영어 복습할까요?" → "응"이라고 말하거나 '할게요'.
+
+### 직접 말해서 시험하기 (에뮬레이터 마이크)
+에뮬레이터는 PC에 마이크가 꽂혀 있어도 기본으로는 그 소리를 앱에 넘기지 않는다. 말로 답해 보려면:
+1. **에뮬레이터를 켤 때마다** `adb -s emulator-5554 emu avd hostmicon` 을 실행한다. (화면으로는 에뮬레이터 도구 막대 `⋯` → Microphone → "Virtual microphone uses host audio input". 껐다 켜면 다시 꺼지니 녹화 직전에 한 번 더 확인한다.)
+2. PC 운영체제에서 마이크 접근을 허용한다 (Windows: 설정 → 개인 정보 → 마이크 → 데스크톱 앱 허용).
+3. 이어폰을 낀다. 에뮬레이터는 에코 제거가 없어 스피커로 들으면 안내 음성이 다시 마이크로 들어간다.
+
+이 앱은 `RECORD_AUDIO` 권한이 없다. 마이크 소리는 Pleos 음성 인식 서비스가 받고 앱에는 받아 적은 글자만 온다(`STT_SERVICE`). 켜졌는지는 정차 중 학습 화면에서 답을 말했을 때 받아 적은 글자가 보이는지로 확인한다. 아무것도 안 뜨면 1·2번 설정(또는 에뮬레이터 안 Pleos 음성 인식 서비스의 마이크 권한)이 꺼져 있는 것이고, 그동안에도 시연 패널과 `--es hear "…"` 로는 계속 답할 수 있다. 퇴근길 질문은 한국어로 듣는다("응", "네", "할게" / "아니", "쉴게").
 
 ## 8. 알려진 한계
 - 에뮬레이터의 Pleos STT는 영어를 알아듣지 못할 수 있다 → 시연은 답 주입(`hear` · `answer` · 시연 패널)으로, 실차에서는 같은 코드가 STT 결과를 받는다.
+- 에뮬레이터는 PC 마이크를 기본으로 막아 둔다 → 부팅할 때마다 `adb -s emulator-5554 emu avd hostmicon` (7장 '직접 말해서 시험하기').
+- 주차 대시보드는 부하 엔진이 '정차'로 내려온 뒤(P단에 넣고 약 4초)에 뜬다. 앱을 다시 켜면 '지난 학습 결과'는 다음 세션을 마칠 때까지 비어 있다.
 - 핸들 각도 부호, 앰비언트 색 형식(0xRRGGBB), 핸들 미디어 버튼의 MediaSession 전달은 실차에서 다시 확인해야 한다.
 - 학습자 응답 이해 LoRA는 합성 데이터로만 평가했고 앱에 넣지 않았다.
