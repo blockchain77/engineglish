@@ -49,7 +49,7 @@ Pleos Connect 에뮬레이터에서 실제로 실행한 화면입니다(왼쪽�
 | 해법 | 차량 신호(기어·속도·제한 속도·내비 안내 지점·방향지시등·핸들·브레이크·크루즈·와이퍼·전조등·내비 음성·충전)로 **운전 부하를 실시간 5단계로 판단**하고, 단계마다 할 수 있는 학습만 한다. |
 | 핵심 가치 | 학습 콘텐츠(4개 트랙 × 3레벨, 482문항) + 커리큘럼(레벨 테스트·유닛 체크포인트·간격 반복) + 운전 부하 엔진. 채점은 **앱 안 규칙 엔진**이 한다. |
 
-**AI에 대해**: 답 채점·명령 인식·발음 진단은 모두 앱 안의 규칙 엔진입니다. 학습자 응답 이해 LoRA(Qwen3-4B / 1.7B)는 별도로 학습·평가만 했고(`docs/eval/en_lora_eval.md`) **앱에는 넣지 않았습니다.** 앱은 모델이 돈다고 표시하지 않습니다.
+**채점 방식**: 답 채점·명령 인식·발음 진단은 모두 앱 안의 규칙 엔진이 합니다. 학습자 응답 이해 LoRA(Qwen3-4B / 1.7B)는 따로 학습·평가했고(`docs/eval/en_lora_eval.md`) 아직 앱에는 넣지 않았습니다.
 
 ## 2. 기능
 
@@ -157,8 +157,6 @@ $A --es timescale 6 | --ez en_reset true
 ```
 Gleo 재현: `adb -s emulator-5554 shell "am start -a START_ENGLISH_SESSION -n com.cartutor.engineglish/.MainActivity --es ACTION_PARAM '{\"track\":\"travel\"}'"`,
 `adb -s emulator-5554 shell "am broadcast -a SAVE_EXPRESSION -n com.cartutor.engineglish/.platform.gleo.GleoActionReceiver --es ACTION_PARAM '{\"text\":\"Let us call it a day.\"}'"`.
-
-권장 발표 흐름: `en_seed` → MORNING(브리핑 "출근길 32분 → 새 표현 6개 + 복습 10개") → 정답 주입(초록 펄스) → TURN_ON(잠시 멈춤 "방향지시등") → TURN_OFF("아까 그 문제 다시 할게요") → 터널 상황 표현 → CRUISE_ON(여유, 토익 질문) → HARD_BRAKE(즉시 정지) → L1_ERROR(발음 피드백) → JAM → 정체 탈출 표현 → NEAR_ARRIVAL(도착 1분 전으로, 배속 2배로 낮춤 → "곧 도착해요. 오늘 학습은 여기까지 할게요.") → 도착 · P단 → 주차 대시보드(마스코트 · 완료 징글) → 틀린 표현 복습 → 리포트. 퇴근길: EVENING → "퇴근길에도 영어 복습할까요?" → "응"이라고 말하거나 '할게요'.
 
 ### 직접 말해서 시험하기 (에뮬레이터 마이크)
 에뮬레이터는 PC에 마이크가 꽂혀 있어도 기본으로는 그 소리를 앱에 넘기지 않는다. 말로 답해 보려면:
