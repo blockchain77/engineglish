@@ -40,7 +40,21 @@ sealed interface AgentCard {
     data class Briefing(val lines: List<Pair<String, String>>) : AgentCard
     data class Confirm(val question: String, val confirmLabel: String, val actionId: String) : AgentCard
     data class Game(val title: String, val prompt: String, val choices: List<String>) : AgentCard
+
+    /** 개인화 보정 결과 — 들린 말, 보정된 이름, 후보(최대 3곳)와 확률 */
+    data class PlaceChoices(
+        val heard: String,
+        val corrected: String?,
+        val options: List<PlaceOption>,
+        /** "바로 실행" · "한 번 확인" · "선택지 제시" */
+        val stageLabel: String,
+        val waypoint: Boolean,
+        /** 이 카드를 만든 보정 결과 id — 지금 진행 중인 되묻기의 카드만 누를 수 있게 */
+        val resolutionId: Long = 0,
+    ) : AgentCard
 }
+
+data class PlaceOption(val placeId: String, val name: String, val percent: Int, val tags: List<String>)
 
 data class PlanStop(
     val label: String,

@@ -71,7 +71,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="DIAGNOSE_VEHICLE" />
+                <action android:name="GO_TO_MY_PLACE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

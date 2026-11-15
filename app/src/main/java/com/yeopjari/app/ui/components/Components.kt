@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -183,11 +184,54 @@ fun TierBadge(tier: AiTier, latencyMs: Int? = null, modifier: Modifier = Modifie
 
 /**
  * 옆자리 AI 오브. 상태(듣기·생각·말하기)를 색과 움직임으로 표현한다.
- * 주행 중(still = true)에는 대기 애니메이션을 멈춰 주의분산 가이드(움직이는 이미지 금지)를 지킨다.
+ * 주행 중(still = true)에는 어떤 상태에서도 움직이지 않는다 — 상태별 색과(듣는 중이면) 고정된 고리 하나만 그리고,
+ * 무한 애니메이션은 만들지도 않는다 (주의분산 가이드: 중앙 화면에 장식용 움직임 금지).
  */
 @Composable
 fun AiOrb(phase: AgentPhase, size: Dp, still: Boolean = false, modifier: Modifier = Modifier) {
-    val animate = !still || phase != AgentPhase.IDLE
+    if (still) StillOrb(phase, size, modifier) else LiveOrb(phase, size, modifier)
+}
+
+private fun orbColors(phase: AgentPhase): List<Color> = when (phase) {
+    AgentPhase.LISTENING -> listOf(Y.Cyan, Color(0xFF3EE6C8), Y.Periwinkle)
+    AgentPhase.THINKING, AgentPhase.ROUTING -> listOf(Y.Periwinkle, Y.Violet, Color(0xFFFF7CC8))
+    AgentPhase.SPEAKING -> listOf(Y.Cyan, Y.Periwinkle, Y.Violet)
+    AgentPhase.IDLE -> listOf(Color(0xFF4FC8E8), Y.Periwinkle, Color(0xFF8E6BE0))
+}
+
+/** 오브 몸통 (후광 고리 제외) — [r0]은 회전 각도 */
+private fun DrawScope.drawOrbBody(colors: List<Color>, base: Float, r0: Float) {
+    val c = center
+    drawCircle(Brush.radialGradient(listOf(colors[1].copy(alpha = 0.35f), Color.Transparent), c, base * 1.6f), radius = base * 1.6f, center = c)
+    rotate(r0, c) {
+        drawCircle(Brush.sweepGradient(colors + colors.first(), c), radius = base, center = c)
+    }
+    // inner glow blobs
+    for (i in 0..2) {
+        val a = Math.toRadians((r0 * (1 + i * 0.4f) + i * 120).toDouble())
+        val off = Offset((cos(a) * base * 0.32f).toFloat(), (sin(a) * base * 0.32f).toFloat())
+        drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent), c + off, base * 0.62f), radius = base * 0.62f, center = c + off)
+    }
+    drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.5f), Color.Transparent), c - Offset(base * 0.28f, base * 0.34f), base * 0.45f), radius = base * 0.45f, center = c - Offset(base * 0.28f, base * 0.34f))
+    drawCircle(Color.White.copy(alpha = 0.18f), radius = base, center = c, style = Stroke(1.5.dp.toPx()))
+}
+
+/** 주행 중 오브 — 정지 그림. 상태는 색으로, 듣는 중이면 고정 고리 하나 */
+@Composable
+private fun StillOrb(phase: AgentPhase, size: Dp, modifier: Modifier) {
+    val colors = orbColors(phase)
+    Canvas(modifier.size(size)) {
+        val base = this.size.minDimension / 2f * 0.62f
+        if (phase == AgentPhase.LISTENING) {
+            drawCircle(colors[0].copy(alpha = 0.6f), radius = base * 1.25f, center = center, style = Stroke(width = 3.dp.toPx()))
+        }
+        drawOrbBody(colors, base, r0 = 30f)
+    }
+}
+
+/** 정차 중 오브 — 회전·맥박·후광 */
+@Composable
+private fun LiveOrb(phase: AgentPhase, size: Dp, modifier: Modifier) {
     val t = rememberInfiniteTransition(label = "orb")
     val rot by t.animateFloat(0f, 360f, infiniteRepeatable(tween(if (phase == AgentPhase.THINKING) 2200 else 9000, easing = LinearEasing)), label = "rot")
     val pulse by t.animateFloat(0f, 1f, infiniteRepeatable(tween(if (phase == AgentPhase.LISTENING) 900 else 1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse")
@@ -195,36 +239,18 @@ fun AiOrb(phase: AgentPhase, size: Dp, still: Boolean = false, modifier: Modifie
         when (phase) { AgentPhase.LISTENING -> 1.08f; AgentPhase.SPEAKING -> 1.04f; AgentPhase.THINKING, AgentPhase.ROUTING -> 0.96f; else -> 1f },
         label = "scale",
     )
-    val colors = when (phase) {
-        AgentPhase.LISTENING -> listOf(Y.Cyan, Color(0xFF3EE6C8), Y.Periwinkle)
-        AgentPhase.THINKING, AgentPhase.ROUTING -> listOf(Y.Periwinkle, Y.Violet, Color(0xFFFF7CC8))
-        AgentPhase.SPEAKING -> listOf(Y.Cyan, Y.Periwinkle, Y.Violet)
-        AgentPhase.IDLE -> listOf(Color(0xFF4FC8E8), Y.Periwinkle, Color(0xFF8E6BE0))
-    }
-    val r0 = if (animate) rot else 30f
-    val p0 = if (animate) pulse else 0.4f
+    val colors = orbColors(phase)
     Canvas(modifier.size(size)) {
         val c = center
         val base = this.size.minDimension / 2f * 0.62f * scale
         // halo rings
         if (phase == AgentPhase.LISTENING || phase == AgentPhase.SPEAKING) {
             for (i in 0..2) {
-                val k = ((p0 + i / 3f) % 1f)
+                val k = ((pulse + i / 3f) % 1f)
                 drawCircle(colors[0].copy(alpha = (1f - k) * 0.35f), radius = base * (1.05f + k * 0.55f), center = c, style = Stroke(width = 3.dp.toPx()))
             }
         }
-        drawCircle(Brush.radialGradient(listOf(colors[1].copy(alpha = 0.35f), Color.Transparent), c, base * 1.6f), radius = base * 1.6f, center = c)
-        rotate(r0, c) {
-            drawCircle(Brush.sweepGradient(colors + colors.first(), c), radius = base, center = c)
-        }
-        // inner glow blobs
-        for (i in 0..2) {
-            val a = Math.toRadians((r0 * (1 + i * 0.4f) + i * 120).toDouble())
-            val off = Offset((cos(a) * base * 0.32f).toFloat(), (sin(a) * base * 0.32f).toFloat())
-            drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent), c + off, base * 0.62f), radius = base * 0.62f, center = c + off)
-        }
-        drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.5f), Color.Transparent), c - Offset(base * 0.28f, base * 0.34f), base * 0.45f), radius = base * 0.45f, center = c - Offset(base * 0.28f, base * 0.34f))
-        drawCircle(Color.White.copy(alpha = 0.18f), radius = base, center = c, style = Stroke(1.5.dp.toPx()))
+        drawOrbBody(colors, base, rot)
     }
 }
 

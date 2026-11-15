@@ -1,5 +1,6 @@
 package com.yeopjari.app.sim
 
+import com.yeopjari.app.ai.personal.PersonaFactory
 import com.yeopjari.app.core.gateway.LocationGateway
 import com.yeopjari.app.core.gateway.NaviGateway
 import com.yeopjari.app.core.gateway.Source
@@ -29,7 +30,10 @@ import kotlin.math.min
 import kotlin.random.Random
 
 /** 시연 시나리오 — PT 심사 및 시연 영상용. Pleos Virtual Console 조작과 병행 가능 */
-enum class ScenarioId(val title: String, val subtitle: String) {
+enum class ScenarioId(val title: String, val subtitle: String, val personal: Boolean = false) {
+    P_DAEJEON("토요일 · 대전 본가 가는 길", "‘서심다응 가자’ → 성심당 보정 · HUD 선택지 · 학습", true),
+    P_WEEKDAY("평일 아침 · 판교 출근길", "‘스타벅스 가자’ → 늘 가던 판교점 바로 안내", true),
+    P_WEEKEND("토요일 오전 · 잠실 집 앞", "같은 ‘스타벅스’도 주말엔 잠실새내역점", true),
     FREE("자유 주행", "집 앞 정차 · 기본 상태"),
     COMMUTE("평일 아침 출근", "D 기어 → 루틴 실행 · 출근 브리핑 · 정체 우회"),
     PARKING("회사 지하주차장 도착", "GPS 끊김 감지 → 주차 위치 음성 메모"),
@@ -50,6 +54,8 @@ data class SimFlags(
     val online: Boolean = true,
     /** 지하주차장 진입 (FusedLocation 신호 상실) */
     val underground: Boolean = false,
+    /** HUD 시뮬레이터의 도로 움직임 — 시연 영상용. 기본은 꺼짐(주행 중 중앙 화면 움직임 금지 원칙) */
+    val hudRoadMotion: Boolean = false,
 )
 
 /**
@@ -66,7 +72,10 @@ class DriveSimulator(private val scope: CoroutineScope) {
     private val _scenario = MutableStateFlow(ScenarioId.FREE)
     private val _flags = MutableStateFlow(SimFlags())
     private val _timeScale = MutableStateFlow(20f)
+    /** 시뮬레이터 날짜 (epochDay) — 개인화 엔진의 요일·최근성 계산에 쓴다 */
+    private val _day = MutableStateFlow(PersonaFactory.BASE_DAY)
 
+    val epochDay: StateFlow<Int> = _day.asStateFlow()
     val clockSec: StateFlow<Float> = _clock.asStateFlow()
     val scenario: StateFlow<ScenarioId> = _scenario.asStateFlow()
     val flags: StateFlow<SimFlags> = _flags.asStateFlow()
@@ -95,7 +104,10 @@ class DriveSimulator(private val scope: CoroutineScope) {
         override val source = Source.SIMULATOR
         override val route: StateFlow<RouteState> = _route.asStateFlow()
         override suspend fun setDestination(place: Place) = ok {
-            val km = estimateKm(origin, place)
+            // 지금 있는 곳에서 출발 — 시나리오 출발지(잠실 집)로 되돌아가 거리를 부풀리지 않게
+            val here = _location.value?.let { Place("here", "현재 위치", PlaceKind.DESTINATION, it.lat, it.lng) } ?: origin
+            origin = here
+            val km = estimateKm(here, place)
             _route.value = RouteState(
                 active = true, destination = place, totalKm = km, remainingKm = km,
                 remainingMin = (km / 55f * 60f).toInt() + 4, nextGuidance = "경로 안내를 시작합니다",
@@ -190,6 +202,20 @@ class DriveSimulator(private val scope: CoroutineScope) {
     fun setOnline(online: Boolean) = _flags.update { it.copy(online = online) }
     fun setPetOnBoard(on: Boolean) = _flags.update { it.copy(petOnBoard = on) }
     fun setKidsOnBoard(on: Boolean) = _flags.update { it.copy(kidsOnBoard = on) }
+    fun setHudRoadMotion(on: Boolean) = _flags.update { it.copy(hudRoadMotion = on) }
+
+    /**
+     * 되돌리기(바로 실행 → "아니야"·"취소")용 — 실행 전 경로를 남은 거리·도로 정보까지 그대로 복원한다.
+     * 차는 이미 지금 위치에 있으므로, 이 위치에서 진행률이 이어지도록 가상의 출발점을 다시 잡는다.
+     */
+    fun restoreRoute(r: RouteState) {
+        _route.value = r
+        val d = r.destination ?: return
+        val here = _location.value ?: return
+        val p = r.progress.toDouble()
+        origin = if (p >= 0.999) Place("here", "현재 위치", PlaceKind.DESTINATION, here.lat, here.lng)
+        else Place("origin", "출발지", PlaceKind.DESTINATION, (here.lat - d.lat * p) / (1 - p), (here.lng - d.lng * p) / (1 - p))
+    }
 
     fun manualGear(g: Gear) {
         _vehicle.update { it.copy(gear = g, speedKph = if (g == Gear.P) 0f else it.speedKph) }
@@ -239,8 +265,42 @@ class DriveSimulator(private val scope: CoroutineScope) {
     }
 
     private suspend fun runScript(id: ScenarioId) {
-        _flags.update { SimFlags(online = it.online, petName = it.petName) }
+        _flags.update { SimFlags(online = it.online, petName = it.petName, hudRoadMotion = it.hudRoadMotion) }
+        _day.value = PersonaFactory.BASE_DAY
         when (id) {
+            ScenarioId.P_DAEJEON -> {
+                // 격주 토요일 — 대전 본가 가는 경부고속도로. 성심당은 보통 이 길에 들른다.
+                setClock(10, 4); _timeScale.value = 4f
+                _flags.update { it.copy(kidsOnBoard = true) }
+                base(
+                    gear = Gear.D, speed = 96f, soc = 54f, outside = 13f, cabin = 22f, driveMin = 24,
+                    occupants = setOf(Seat.DRIVER, Seat.PASSENGER, Seat.REAR_LEFT, Seat.REAR_RIGHT),
+                )
+                val parents = PersonaFactory.poiById("parents")!!.place
+                route(parents, 168f, 19f, 17, 0, "경부고속도로", true, "대전IC 방면 오른쪽 차로", turnM = 7400, from = Places.home, naviSoc = 41)
+                _route.update { it.copy(speedLimitKph = 110) }
+                _location.value = GeoPoint(36.482, 127.347)
+            }
+
+            ScenarioId.P_WEEKDAY -> {
+                // 목요일 아침 — 판교 출근길
+                _day.value = PersonaFactory.BASE_DAY - 2
+                setClock(8, 31); _timeScale.value = 4f
+                base(gear = Gear.D, speed = 34f, soc = 71f, outside = 6f, cabin = 21f, hvac = Hvac(power = true, setTempC = 21f), driveMin = 22)
+                route(Places.work, 18.4f, 2.6f, 7, 0, "판교역로", false, "300m 앞 우회전", turnM = 300, from = Places.home)
+                _route.update { it.copy(speedLimitKph = 50) }
+                _location.value = GeoPoint(37.4176, 127.1074)
+            }
+
+            ScenarioId.P_WEEKEND -> {
+                // 토요일 오전 — 잠실 집 앞 정차
+                setClock(10, 50); _timeScale.value = 4f
+                base(gear = Gear.P, soc = 83f, outside = 12f, cabin = 18f)
+                _route.value = RouteState()
+                origin = Places.home
+                _location.value = GeoPoint(Places.home.lat, Places.home.lng)
+            }
+
             ScenarioId.FREE -> {
                 setClock(9, 0); base(); _route.value = RouteState(); _timeScale.value = 20f
             }

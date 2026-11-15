@@ -55,6 +55,8 @@ class NaviHub(
     private val sim: NaviGateway,
     private val mode: StateFlow<Source>,
     private val realConnected: StateFlow<Boolean>,
+    /** 시나리오 재생 중 경로 변경을 실제 차량 내비에도 반영할지 (시연 녹화 때 기본 내비가 매번 앞으로 나오지 않게 끌 수 있다) */
+    private val mirrorToCar: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true),
 ) : NaviGateway {
     override val source: Source get() = mode.value
     override val route: StateFlow<RouteState> =
@@ -64,7 +66,7 @@ class NaviHub(
     private suspend fun both(op: suspend (NaviGateway) -> Result<Unit>): Result<Unit> {
         val primary = if (mode.value == Source.PLEOS_SDK) real else sim
         val r = op(primary)
-        if (primary === sim && realConnected.value) op(real)
+        if (primary === sim && realConnected.value && mirrorToCar.value) op(real)
         return r
     }
 

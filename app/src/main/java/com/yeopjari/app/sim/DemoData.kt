@@ -28,7 +28,8 @@ object Places {
     val workGarage = Place("garage", "회사 지하주차장", PlaceKind.WORK, 37.4021, 127.1087, "판교 사옥 B1~B4")
 
     val all = listOf(home, work, gyeongpo, hoengseong, pyeongchang, deokpyeong, yeoju, manghyang, shelter, serviceCenter, tireShop, cafeNearCharger, workGarage)
-    fun byId(id: String) = all.firstOrNull { it.id == id }
+    /** 시연 장소 + 개인 장소 사전(가상 운전자)에서 찾는다 */
+    fun byId(id: String): Place? = all.firstOrNull { it.id == id } ?: com.yeopjari.app.ai.personal.PersonaFactory.poiById(id)?.place
 }
 
 object Chargers {

@@ -12,18 +12,24 @@ import org.json.JSONObject
 /**
  * Gleo Interface (App Schema) 연동.
  *
- *  사용자 ─"글레오야, 옆자리로 강릉 가는 충전 계획 세워줘"─▶ Gleo AI (차량 온디바이스/서버 LLM)
- *      ─ Function Calling: PLAN_EV_TRIP(destination="강릉") ─▶ Intent(action, ACTION_PARAM) ─▶ 옆자리
+ *  사용자 ─"글레오야, 옆자리로 서심다응 가자"─▶ Gleo AI (차량 온디바이스/서버 LLM)
+ *      ─ Function Calling: GO_TO_MY_PLACE(place="서심다응") ─▶ Intent(action, ACTION_PARAM) ─▶ 옆자리
  *      ◀─ Callback 브로드캐스트(APP_ACTION_RESPONSE: success/asking/fail) ── 옆자리 (7초 이내)
+ *         · 바로 실행 → success · HUD로 되묻는 중 → asking(+ HUD 질문) · 못 찾음/내비 실패 → fail
  *
- * 즉, '기본 음성 인식·명령'은 차량 AI(Gleo)가 처리하고, 복잡한 추론이 필요한 순간에만
- * 옆자리의 도메인 에이전트가 호출되는 구조.
+ * 즉, '기본 음성 인식·명령'은 차량 AI(Gleo)가 처리하고, 그 결과(텍스트)가 애매하거나 틀렸을 때
+ * 옆자리의 개인화 보정 엔진이 이 사람의 기록으로 바로잡고 HUD로 되묻는 구조.
  */
 object GleoBridge {
     const val PLAN_EV_TRIP = "PLAN_EV_TRIP"
     const val START_CARE_MODE = "START_CARE_MODE"
-    const val DIAGNOSE_VEHICLE = "DIAGNOSE_VEHICLE"
-    val ACTIONS = setOf(PLAN_EV_TRIP, START_CARE_MODE, DIAGNOSE_VEHICLE)
+    const val GO_TO_MY_PLACE = "GO_TO_MY_PLACE"
+    val ACTIONS = setOf(PLAN_EV_TRIP, START_CARE_MODE, GO_TO_MY_PLACE)
+
+    /** 콜백 status — 처리함 / 사용자에게 되묻는 중(HUD) / 처리 못 함 */
+    const val SUCCESS = "success"
+    const val ASKING = "asking"
+    const val FAIL = "fail"
 
     private const val EXTRA_PARAM = "ACTION_PARAM"
     private const val RESPONSE_ACTION = "ai.pleos.playground.intent.action.APP_ACTION_RESPONSE"
@@ -79,17 +85,17 @@ class GleoActionReceiver : BroadcastReceiver() {
                 val mode = action.params.optString("mode", "pet")
                 val temp = action.params.optDouble("temperature", 22.0).toFloat().coerceIn(16f, 30f)
                 if (store.context.value.vehicle.driveMode == DriveMode.DRIVING) {
-                    GleoBridge.respond(context, action.name, "fail", "Care mode can only start after the vehicle is parked.")
+                    GleoBridge.respond(context, action.name, GleoBridge.FAIL, "Care mode can only start after the vehicle is parked.")
                     return
                 }
                 if (mode == "rest") store.startRestMode(15) else store.startPetMode(temp)
                 GleoBridge.respond(
-                    context, action.name, "success",
+                    context, action.name, GleoBridge.SUCCESS,
                     if (mode == "rest") "Rest mode started for 15 minutes." else "Pet care mode started. The cabin will stay at ${temp.toInt()} degrees Celsius.",
                     JSONArray().put(JSONObject().put("mode", mode).put("temperature", temp)),
                 )
             }
-            else -> GleoBridge.respond(context, action.name, "fail", "This action is handled on screen.")
+            else -> GleoBridge.respond(context, action.name, GleoBridge.FAIL, "This action is handled on screen.")
         }
     }
 }

@@ -1,9 +1,37 @@
 {
   "packageName": "com.yeopjari.app",
-  "appDescription": "An in-car AI co-pilot that plans EV charging and rest stops, keeps the parked cabin safe for pets and resting passengers, and explains vehicle warnings using live vehicle data.",
+  "appDescription": "A personal in-car AI that understands the driver's own way of speaking: it corrects misheard place names using the driver's on-device visit history, asks with up to three choices on the head-up display only when unsure, and also plans EV charging stops and keeps the parked cabin safe for pets.",
   "invokeWord": "옆자리",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "actionCalls": [
+    {
+      "type": "function",
+      "function": {
+        "name": "GO_TO_MY_PLACE",
+        "description": "Navigate to a place the driver mentions, even if the name was misheard or vague (for example 'the usual bakery'). The app matches it against the driver's own on-device visit history and asks with up to three choices on the head-up display when unsure.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "place": {
+              "type": "string",
+              "description": "The place name or description exactly as heard from the driver."
+            },
+            "stop_type": {
+              "type": "string",
+              "enum": [
+                "destination",
+                "waypoint"
+              ],
+              "description": "Whether to go there now or stop by on the current route."
+            }
+          },
+          "required": [
+            "place"
+          ]
+        },
+        "component": "activity"
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -12,10 +40,24 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "destination": { "type": "string", "description": "Name of the destination." },
-            "companions": { "type": "string", "enum": ["alone", "adults", "kids", "pet"], "description": "Who is travelling with the driver." }
+            "destination": {
+              "type": "string",
+              "description": "Name of the destination."
+            },
+            "companions": {
+              "type": "string",
+              "enum": [
+                "alone",
+                "adults",
+                "kids",
+                "pet"
+              ],
+              "description": "Who is travelling with the driver."
+            }
           },
-          "required": ["destination"]
+          "required": [
+            "destination"
+          ]
         },
         "component": "activity"
       }
@@ -28,27 +70,24 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "mode": { "type": "string", "enum": ["pet", "rest"], "description": "Care mode to start." },
-            "temperature": { "type": "number", "description": "Target cabin temperature in Celsius." }
+            "mode": {
+              "type": "string",
+              "enum": [
+                "pet",
+                "rest"
+              ],
+              "description": "Care mode to start."
+            },
+            "temperature": {
+              "type": "number",
+              "description": "Target cabin temperature in Celsius."
+            }
           },
-          "required": ["mode"]
+          "required": [
+            "mode"
+          ]
         },
         "component": "service"
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "DIAGNOSE_VEHICLE",
-        "description": "Explain a dashboard warning light or a vehicle symptom in plain language using live vehicle data and suggest what to do next.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "symptom": { "type": "string", "description": "The warning light or symptom described by the user." }
-          },
-          "required": ["symptom"]
-        },
-        "component": "activity"
       }
     }
   ]

@@ -8,8 +8,15 @@ import com.yeopjari.app.ai.nlu.Intent
 import com.yeopjari.app.ai.nlu.NluResult
 import com.yeopjari.app.ai.nlu.OnDeviceIntentEngine
 import com.yeopjari.app.ai.nlu.RouteHint
+import com.yeopjari.app.ai.personal.Hangul
+import com.yeopjari.app.ai.personal.PersonalBrain
+import com.yeopjari.app.ai.personal.PlaceQuery
+import com.yeopjari.app.ai.personal.Resolution
+import com.yeopjari.app.ai.personal.StopMode
+import com.yeopjari.app.ai.personal.Tier
 import com.yeopjari.app.ai.tools.ToolRegistry
 import com.yeopjari.app.core.model.AgentCard
+import com.yeopjari.app.core.model.PlaceOption
 import com.yeopjari.app.core.model.AgentPhase
 import com.yeopjari.app.core.model.AgentTurn
 import com.yeopjari.app.core.model.AiTier
@@ -22,8 +29,19 @@ import com.yeopjari.app.sim.Chargers
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-/** 응답 결과 + 음성으로 읽을 문장 */
-data class AgentResult(val turn: AgentTurn, val speak: String)
+/** 응답 결과 + 음성으로 읽을 문장 (+ 장소 명령이면 개인화 보정 결과) */
+data class AgentResult(val turn: AgentTurn, val speak: String, val resolution: Resolution? = null)
+
+/** 보정 결과 → 대화 카드 (최대 3곳) */
+fun placeCard(res: Resolution, options: List<com.yeopjari.app.ai.personal.Candidate> = res.candidates.take(3), stageLabel: String = res.tier.label): AgentCard.PlaceChoices =
+    AgentCard.PlaceChoices(
+        heard = res.query.text,
+        corrected = res.correctedTo,
+        options = options.map { PlaceOption(it.poi.place.id, it.poi.spoken, (it.prob * 100).roundToInt(), it.tags.take(3)) },
+        stageLabel = stageLabel,
+        waypoint = res.query.mode == StopMode.WAYPOINT,
+        resolutionId = res.id,
+    )
 
 /**
  * 하이브리드 AI 오케스트레이터.
@@ -42,6 +60,8 @@ class AgentOrchestrator(
     private val nlu: OnDeviceIntentEngine,
     private val reasoner: CloudReasoner,
     private val tools: ToolRegistry,
+    /** 개인화 보정 엔진 — 들린 장소 이름 + 차 안 방문 기록 → 후보와 확률 */
+    private val resolvePlace: (PlaceQuery) -> Resolution,
 ) {
     private var seq = 1000L
     private fun nextId() = ++seq
@@ -113,6 +133,8 @@ class AgentOrchestrator(
         val r = ctx.route
         val calls = mutableListOf<ToolCall>()
         val cards = mutableListOf<AgentCard>()
+        var resolution: Resolution? = null
+        val reasoning = mutableListOf("의도: ${p.intent.label} · 신뢰도 ${(p.confidence * 100).roundToInt()}% → 엣지 처리 (네트워크 불필요)")
         suspend fun run(name: String, args: Map<String, String> = emptyMap()): String {
             val res = tools.execute(name, args)
             calls += ToolCall(name, args, if (res.isSuccess) ToolStatus.DONE else ToolStatus.BLOCKED, res.getOrElse { it.message ?: "실패" })
@@ -120,12 +142,39 @@ class AgentOrchestrator(
         }
 
         val text: String = when (p.intent) {
+            Intent.NAV_PLACE -> {
+                val q = p.place ?: PlaceQuery(p.slots["query"].orEmpty())
+                val res = resolvePlace(q)
+                resolution = res
+                val top = res.top
+                if (top != null) {
+                    reasoning += "들린 말 ‘${q.text}’" + (res.correctedTo?.let { " → 발음 보정 ‘$it’ (유사도 ${"%.2f".format(top.f.phon)})" } ?: "") +
+                        if (res.aliasHit) " · 전에 배운 표현" else ""
+                    reasoning += "후보 ${res.candidates.size}곳 · 차 안 방문 기록으로 점수 계산 (서버 전송 없음)"
+                    res.candidates.take(3).forEachIndexed { i, c ->
+                        val f = c.f
+                        reasoning += "${i + 1}. ${c.poi.spoken} ${(c.prob * 100).roundToInt()}% — 발음 ${"%.2f".format(f.phon)} · 자주 ${"%.2f".format(f.freq)} · 시간대 ${"%.2f".format(f.time)} · 거리 ${"%.2f".format(f.dist)} · 최근 ${"%.2f".format(f.recent)} · 선호 ${"%.2f".format(f.pref)}"
+                    }
+                    reasoning += "확신도 ${(top.prob * 100).roundToInt()}% → ${res.tier.label}"
+                    cards += placeCard(res)
+                }
+                val name = top?.poi?.spoken.orEmpty()
+                // "늘 가시던"은 단골일 때만 (90일 4회 이상 방문 또는 이 말로 고른 적 있음) — 한두 번 간 곳·처음 가는 곳에는 쓰지 않는다
+                val known = top?.habitual == true
+                val waypoint = q.mode == StopMode.WAYPOINT
+                when {
+                    top == null -> "‘${q.text}’${Hangul.eunNeun(q.text)} 제 기록에서 찾지 못했어요. 장소 이름을 한 번 더 말씀해 주시겠어요?"
+                    res.tier == Tier.AUTO -> (if (known) "늘 가시던 " else "") + if (waypoint) "${name}에 들렀다 갈게요." else "$name${Hangul.ro(name)} 안내할게요."
+                    res.tier == Tier.CONFIRM -> if (waypoint) "${name}에 들를까요?" else "$name${Hangul.ro(name)} 갈까요?"
+                    else -> "어느 곳인지 헷갈려요. 화면에 ${res.candidates.size.coerceAtMost(3)}곳을 띄웠어요. 번호로 말씀해 주세요."
+                }
+            }
             Intent.HVAC_SET_TEMP -> { val t = p.slots["temp"] ?: "22"; run("hvac_set_temperature", mapOf("celsius" to t)); "실내 온도를 ${t}도로 맞출게요." }
             Intent.HVAC_WARMER -> { val t = (v.hvac.setTempC + 1.5f); run("hvac_set_temperature", mapOf("celsius" to t.toString())); "조금 더 따뜻하게, ${"%.1f".format(t)}도로 올렸어요." }
             Intent.HVAC_COOLER -> { val t = (v.hvac.setTempC - 1.5f); run("hvac_set_temperature", mapOf("celsius" to t.toString())); "시원하게 ${"%.1f".format(t)}도로 낮췄어요." }
             Intent.HVAC_FRESH_AIR -> { run("hvac_fresh_air"); "바깥 공기를 들여올게요. 풍량도 조금 높였어요." }
-            Intent.NAV_HOME -> { run("navi_set_destination", mapOf("place_id" to "home")); "${ctx.profile.homeLabel}으로 안내를 시작할게요." }
-            Intent.NAV_WORK -> { run("navi_set_destination", mapOf("place_id" to "work")); "${ctx.profile.workLabel}로 안내를 시작할게요." }
+            Intent.NAV_HOME -> { run("navi_set_destination", mapOf("place_id" to "home")); val l = ctx.profile.homeLabel; "$l${Hangul.ro(l)} 안내를 시작할게요." }
+            Intent.NAV_WORK -> { run("navi_set_destination", mapOf("place_id" to "work")); val l = ctx.profile.workLabel; "$l${Hangul.ro(l)} 안내를 시작할게요." }
             Intent.ADD_REST_STOP -> {
                 val place = if (r.isHighway) "hoengseong" else "cafe"
                 calls += ToolCall("navi_add_waypoint", mapOf("place_id" to place), ToolStatus.PENDING_CONFIRM)
@@ -150,7 +199,8 @@ class AgentOrchestrator(
             Intent.KIDS_ETA -> {
                 val mins = r.remainingMin
                 val episodes = (mins / 12).coerceAtLeast(1)
-                "${ctx.profile.kids.first().first}야, 만화 ${episodes}편 보면 도착해! 지금 바다까지 ${(r.progress * 100).roundToInt()}퍼센트 왔어."
+                val kid = ctx.profile.kids.firstOrNull()?.first ?: "얘들"
+                "$kid${Hangul.aYa(kid)}, 만화 ${episodes}편 보면 도착해! 지금 바다까지 ${(r.progress * 100).roundToInt()}퍼센트 왔어."
             }
             Intent.PET_MODE_ON -> {
                 if (v.driveMode.restricted) "펫 케어 모드는 정차 후에 켤 수 있어요. 주차하면 바로 켜 드릴게요."
@@ -192,9 +242,11 @@ class AgentOrchestrator(
         }
         return AgentResult(
             AgentTurn(nextId(), Speaker.AGENT, text, AiTier.ON_DEVICE, p.latencyMs,
-                reasoning = listOf("의도: ${p.intent.label} · 신뢰도 ${(p.confidence * 100).roundToInt()}% → 엣지 처리 (네트워크 불필요)"),
-                toolCalls = calls, cards = cards),
+                reasoning = reasoning,
+                toolCalls = calls, cards = cards,
+                privacyNote = if (resolution != null) "개인 방문 기록은 차 안 암호화 저장소에서만 읽었어요 · 전송 없음" else null),
             text,
+            resolution,
         )
     }
 

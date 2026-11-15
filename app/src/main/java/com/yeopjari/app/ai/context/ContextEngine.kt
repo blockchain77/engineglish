@@ -1,5 +1,6 @@
 package com.yeopjari.app.ai.context
 
+import com.yeopjari.app.ai.personal.Hangul
 import com.yeopjari.app.core.model.AiTier
 import com.yeopjari.app.core.model.DriveMode
 import com.yeopjari.app.core.model.Gear
@@ -33,25 +34,27 @@ object ContextEngine {
 
         // 1) 뒷좌석 확인 — 안전 최우선 (규칙 엔진, 출발 시 뒷문 개폐 이력 기반)
         if (ctx.flags.rearOpenedAtStart && v.gear == Gear.P && v.doors.driver && !v.doors.rearOpen) {
-            val kid = ctx.profile.kids.firstOrNull()?.first ?: "아이"
+            // 이름 뒤 조사는 받침에 맞춘다: 하율 → '하율이가', 아이 → '아이가'
+            val kid = Hangul.nameSubject(ctx.profile.kids.firstOrNull()?.first ?: "아이")
             out += Moment(
                 "rear", MomentType.REAR_SEAT, Urgency.CRITICAL,
-                "뒷좌석에 ${kid}가 있지 않나요?",
+                "뒷좌석에 $kid 있지 않나요?",
                 "출발할 때 뒷문이 열렸지만 도착 후에는 열리지 않았어요. 내리기 전에 뒷좌석을 꼭 확인해 주세요.",
                 listOf(MomentAction("rear_ok", "확인했어요", true), MomentAction("rear_horn", "계속 알려줘")),
-                speak = "잠깐만요! 뒷좌석에 ${kid}가 있는지 확인해 주세요.",
+                speak = "잠깐만요! 뒷좌석에 $kid 있는지 확인해 주세요.",
                 tier = AiTier.RULE, deferrable = false,
             )
         }
 
         // 2) 펫 케어 — 반려동물 동승 + 정차 + 극한 외기온
         if (ctx.flags.petOnBoard && v.gear == Gear.P && !app.petModeActive && (v.outsideTempC > 25f || v.outsideTempC < 5f)) {
+            val pet = Hangul.nameStem(ctx.flags.petName) // 콩이 → 콩이, 초롱 → 초롱이
             out += Moment(
                 "pet", MomentType.PET_CARE, if (v.doors.driver) Urgency.CRITICAL else Urgency.HIGH,
-                "${ctx.flags.petName}와 잠시 내리시나요?",
+                "${pet}와 잠시 내리시나요?",
                 "바깥이 ${v.outsideTempC.roundToInt()}°C예요. 펫 케어 모드를 켜면 실내를 22°C로 유지하고, 화면에 '반려견이 안전하게 있어요' 안내를 띄워요. 배터리 20% 아래로는 내려가지 않게 지킬게요.",
                 listOf(MomentAction("pet_on", "펫 케어 켜기", true), MomentAction("pet_no", "함께 내려요")),
-                speak = "${ctx.flags.petName}를 차에 두고 내리시면 펫 케어 모드를 켜 드릴까요?",
+                speak = "${pet}를 차에 두고 내리시면 펫 케어 모드를 켜 드릴까요?",
                 tier = AiTier.ON_DEVICE, metric = "${v.outsideTempC.roundToInt()}°C", metricLabel = "외기온", deferrable = false,
             )
         }

@@ -1,8 +1,12 @@
 package com.yeopjari.app
 
 import android.app.Application
+import com.yeopjari.app.ai.personal.PersonalService
 import com.yeopjari.app.core.gateway.Source
 import com.yeopjari.app.platform.hub.NaviHub
+import com.yeopjari.app.platform.secure.SecureVault
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import com.yeopjari.app.platform.hub.VehicleHub
 import com.yeopjari.app.platform.pleos.AndroidSpeechOutput
 import com.yeopjari.app.platform.pleos.CompositeSpeechOutput
@@ -43,10 +47,20 @@ class AppContainer(app: Application) {
     private var userPinnedSource = false
 
     val vehicle = VehicleHub(scope, pleosVehicle, sim.vehicle, sourceMode, pleosVehicle.connected)
-    val navi = NaviHub(scope, pleosNavi, sim.navi, sourceMode, pleosNavi.connected)
+    /** 시나리오 재생 중 경로 변경을 실제 차량 내비에도 반영 (시연 녹화 때 adb extra 'mirror'로 끌 수 있음) */
+    val mirrorToCar = MutableStateFlow(true)
+    val navi = NaviHub(scope, pleosNavi, sim.navi, sourceMode, pleosNavi.connected, mirrorToCar)
 
     val speechIn = PleosSpeechInput(app)
     val speechOut = CompositeSpeechOutput(PleosSpeechOutput(app), AndroidSpeechOutput(app))
+
+    /** 차 안 비밀 금고(Android Keystore) + 개인화 보정 엔진 */
+    val vault = SecureVault(app)
+    val personal = PersonalService(vault)
+
+    /** 현재 위치 — Pleos 모드는 FusedLocation SDK(없으면 시뮬레이터), 시나리오 모드는 시뮬레이터 */
+    val location = combine(sourceMode, sim.location.location, pleosLocation.location) { src, s, p -> if (src == Source.PLEOS_SDK) (p ?: s) else s }
+        .stateIn(scope, SharingStarted.Eagerly, sim.location.location.value)
 
     val store = YeopjariStore(
         scope = scope, sim = sim, vehicle = vehicle, navi = navi,
@@ -55,6 +69,8 @@ class AppContainer(app: Application) {
         sourceMode = sourceMode,
         pleosConnected = combine(pleosVehicle.connected, pleosNavi.connected) { v, n -> v || n },
         onSourceChange = { src -> userPinnedSource = true; sourceMode.value = src },
+        personal = personal,
+        location = location,
     )
 
     init {
@@ -62,6 +78,13 @@ class AppContainer(app: Application) {
         scope.launch {
             pleosVehicle.connected.collect { ok -> if (ok && !userPinnedSource) sourceMode.value = Source.PLEOS_SDK }
         }
+        // 실차 내비의 최근 목적지·즐겨찾기 → 개인 장소 사전 (차 안 암호화 저장)
+        scope.launch {
+            combine(pleosNavi.recentDestinations, pleosNavi.bookmarks) { r, b -> r to b }
+                .collect { (r, b) -> if (r.isNotEmpty() || b.isNotEmpty()) personal.syncVehiclePlaces(r, b) }
+        }
+        // 실제 목적지 도착 → 방문 기록
+        scope.launch { pleosNavi.arrivals.collect { p -> personal.recordArrival(p, store.situation()) } }
     }
 
     fun onLocationPermissionGranted() = pleosLocation.start()

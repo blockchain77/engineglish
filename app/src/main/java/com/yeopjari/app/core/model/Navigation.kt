@@ -67,6 +67,8 @@ data class RouteState(
     val isHighway: Boolean = false,
     /** NaviHelper TripInfo.estimatedSocAtDest — 내비 엔진이 계산한 도착 SOC */
     val naviEstimatedSoc: Int? = null,
+    /** NaviHelper onCurrentRoadSpeedLimit — HUD 제한속도 표시 */
+    val speedLimitKph: Int? = null,
 ) {
     val progress: Float get() = if (totalKm <= 0f) 0f else (1f - remainingKm / totalKm).coerceIn(0f, 1f)
 }

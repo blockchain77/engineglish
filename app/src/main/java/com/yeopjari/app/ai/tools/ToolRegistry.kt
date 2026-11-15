@@ -1,5 +1,6 @@
 package com.yeopjari.app.ai.tools
 
+import com.yeopjari.app.ai.personal.Hangul
 import com.yeopjari.app.core.gateway.NaviGateway
 import com.yeopjari.app.core.gateway.VehicleGateway
 import com.yeopjari.app.core.model.Routine
@@ -69,7 +70,7 @@ class ToolRegistry(private val host: ToolHost) {
         when (name) {
             "navi_set_destination" -> {
                 val p = Places.byId(args["place_id"] ?: "") ?: error("알 수 없는 장소")
-                host.navi.setDestination(p).getOrThrow(); "${p.name}로 안내 시작"
+                host.navi.setDestination(p).getOrThrow(); "${p.name}${Hangul.ro(p.name)} 안내 시작"
             }
             "navi_add_waypoint" -> {
                 val p = Places.byId(args["place_id"] ?: "") ?: error("알 수 없는 장소")

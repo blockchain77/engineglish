@@ -190,12 +190,12 @@ private fun GleoCard(store: YeopjariStore) {
     val calls by store.gleoCalls.collectAsStateWithLifecycle()
     GlassCard(Modifier.fillMaxWidth(), accent = Y.Violet) {
         SectionTitle("Gleo Interface · App Schema") { Pill("호출 $calls 회", color = Y.Violet, bg = Y.Violet.copy(alpha = 0.12f)) }
-        Text("“글레오야, 옆자리로 강릉 가는 충전 계획 세워줘” — 차량 기본 AI가 옆자리를 Function Calling으로 호출합니다 (assets/schema.json).", style = MaterialTheme.typography.bodyMedium, color = Y.Text2)
+        Text("“글레오야, 옆자리로 서심다응 가자” — 차량 기본 AI가 옆자리를 Function Calling으로 호출하면, 옆자리가 이 사람의 기록으로 장소 이름을 바로잡고 애매하면 HUD로 되묻습니다 (assets/schema.json).", style = MaterialTheme.typography.bodyMedium, color = Y.Text2)
         Spacer(Modifier.height(12.dp))
         listOf(
+            Triple("GO_TO_MY_PLACE", "activity", "place, stop_type(destination|waypoint)"),
             Triple("PLAN_EV_TRIP", "activity", "destination, companions"),
             Triple("START_CARE_MODE", "service", "mode(pet|rest), temperature"),
-            Triple("DIAGNOSE_VEHICLE", "activity", "symptom"),
         ).forEach { (n, c, p) ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Y.Bg3).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(n, style = MaterialTheme.typography.titleSmall.copy(fontFamily = FontFamily.Monospace), color = Y.Violet, modifier = Modifier.weight(1f))

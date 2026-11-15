@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -52,7 +53,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yeopjari.app.YeopjariStore
+import com.yeopjari.app.ai.context.DriveContext
 import com.yeopjari.app.core.model.AgentCard
 import com.yeopjari.app.core.model.AgentPhase
 import com.yeopjari.app.core.model.AgentTurn
@@ -78,6 +82,29 @@ import com.yeopjari.app.ui.components.TierBadge
 import com.yeopjari.app.ui.components.rememberPhaseLabel
 import com.yeopjari.app.ui.theme.Y
 
+/** 지금 누를 수 있는 선택지 카드 — 진행 중인 되묻기와 같은 보정 결과의 가장 최근 카드 하나 */
+private data class ActiveCard(val turnId: Long, val card: AgentCard.PlaceChoices)
+
+private fun activeCardOf(turns: List<AgentTurn>, pendingResolutionId: Long?): ActiveCard? {
+    pendingResolutionId ?: return null
+    for (t in turns.asReversed()) {
+        val card = t.cards.filterIsInstance<AgentCard.PlaceChoices>().lastOrNull { it.resolutionId == pendingResolutionId }
+        if (card != null) return ActiveCard(t.id, card)
+    }
+    return null
+}
+
+/** 주행 중 추천 — 스크롤 없이 3개만 */
+private fun drivingSuggestions(ctx: DriveContext): List<String> = listOf(
+    "서심다응 가자",
+    if (ctx.route.isHighway) "다음 휴게소 들렀다 가자" else "빵집 들렀다 가자",
+    when {
+        ctx.fatigue.level > 0 -> "졸려"
+        ctx.route.active -> "도착하면 배터리 몇 % 남아?"
+        else -> "유튜브 틀어줘"
+    },
+)
+
 @Composable
 fun AgentPanel(store: YeopjariStore, layout: Layout) {
     val turns by store.turns.collectAsStateWithLifecycle()
@@ -85,9 +112,12 @@ fun AgentPanel(store: YeopjariStore, layout: Layout) {
     val detail by store.phaseDetail.collectAsStateWithLifecycle()
     val partial by store.partialTranscript.collectAsStateWithLifecycle()
     val ctx by store.context.collectAsStateWithLifecycle()
+    val clarify by store.clarify.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    // 진행 중인 되묻기의 카드만 누를 수 있다 (지난 질문의 카드를 눌러 다시 학습·안내되지 않게)
+    val active = activeCardOf(turns, clarify?.res?.id)
 
-    LaunchedEffect(turns.size) { if (turns.isNotEmpty()) listState.animateScrollToItem(turns.size - 1) }
+    LaunchedEffect(turns.size, layout.restricted) { if (!layout.restricted && turns.isNotEmpty()) listState.animateScrollToItem(turns.size - 1) }
 
     Column(
         Modifier.fillMaxSize().background(Y.Bg1)
@@ -111,35 +141,57 @@ fun AgentPanel(store: YeopjariStore, layout: Layout) {
                     style = MaterialTheme.typography.bodyMedium, color = if (detail != null) Y.Periwinkle else Y.Text3, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Box(Modifier.size(64.dp).clip(CircleShape).background(Y.Bg3).clickable { store.closeAgent() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(76.dp).clip(CircleShape).background(Y.Bg3).clickable { store.closeAgent() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Close, "닫기", tint = Y.Text1, modifier = Modifier.size(30.dp))
             }
         }
         Spacer(Modifier.height(16.dp))
 
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            val shown = if (layout.restricted) turns.takeLast(3) else turns
-            items(shown, key = { it.id }) { t -> TurnView(t, store, layout) }
+        if (layout.restricted) {
+            // 주행 중: 스크롤 목록 없이 최근 대화 두 개(넘치면 위쪽이 잘림) + 지금 답할 선택지 카드 하나(최대 3곳 · 76dp)
+            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+                Column(
+                    Modifier.fillMaxWidth().align(Alignment.BottomStart).wrapContentHeight(Alignment.Bottom, unbounded = true),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    turns.takeLast(2).forEach { t -> TurnView(t, store, layout, active = null) }
+                }
+            }
+            active?.let { a ->
+                Spacer(Modifier.height(14.dp))
+                CardView(a.card, store, layout, placeActive = true)
+            }
+        } else {
+            LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(turns, key = { it.id }) { t -> TurnView(t, store, layout, active) }
+            }
         }
 
         Spacer(Modifier.height(14.dp))
         // Suggestions (context aware)
-        val suggestions = buildList {
-            if (ctx.vehicle.driveMode.restricted) {
-                add("졸려"); add("다음 휴게소 들렀다 가자"); add("도착하면 배터리 몇 % 남아?"); add("유튜브 틀어줘")
-            } else {
-                add("아이들이랑 강릉 가는데 충전이랑 쉬는 거 같이 계획 세워줘")
-                add("타이어 경고등 왜 켜진 거야?")
-                add("퇴근할 때 비 오면 집까지 예상 지연 알려주는 루틴 만들어줘")
-                add("강아지 두고 잠깐 내릴게")
-                add("오늘 브리핑 해줘")
-                add("V2L 어떻게 써?")
+        if (layout.restricted) {
+            // 주행 중: 되묻는 중이면 선택지 카드만 (선택지는 최대 3개), 아니면 스크롤 없는 추천 3개
+            if (clarify == null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    drivingSuggestions(ctx).forEach { s -> SuggestionChip(s, Modifier.weight(1f).heightIn(min = 76.dp)) { store.send(s) } }
+                }
+                Spacer(Modifier.height(14.dp))
             }
+        } else {
+            val suggestions = listOf(
+                "서심다응 가자", "스타벅스 가자", "엄마 집 가자",
+                "아이들이랑 강릉 가는데 충전이랑 쉬는 거 같이 계획 세워줘",
+                "타이어 경고등 왜 켜진 거야?",
+                "퇴근할 때 비 오면 집까지 예상 지연 알려주는 루틴 만들어줘",
+                "강아지 두고 잠깐 내릴게",
+                "오늘 브리핑 해줘",
+                "V2L 어떻게 써?",
+            )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                suggestions.forEach { s -> SuggestionChip(s, Modifier.widthIn(max = 420.dp)) { store.send(s) } }
+            }
+            Spacer(Modifier.height(14.dp))
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            suggestions.forEach { s -> SuggestionChip(s, Modifier.widthIn(max = 420.dp)) { store.send(s) } }
-        }
-        Spacer(Modifier.height(14.dp))
         // Input row
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!layout.restricted) {
@@ -171,7 +223,7 @@ fun AgentPanel(store: YeopjariStore, layout: Layout) {
 }
 
 @Composable
-private fun TurnView(t: AgentTurn, store: YeopjariStore, layout: Layout) {
+private fun TurnView(t: AgentTurn, store: YeopjariStore, layout: Layout, active: ActiveCard?) {
     when (t.speaker) {
         Speaker.USER -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Text(
@@ -182,16 +234,16 @@ private fun TurnView(t: AgentTurn, store: YeopjariStore, layout: Layout) {
         Speaker.SYSTEM -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Pill(t.text, color = if (t.text.startsWith("Gleo")) Y.Violet else Y.Ev, bg = (if (t.text.startsWith("Gleo")) Y.Violet else Y.Ev).copy(alpha = 0.12f))
         }
-        Speaker.AGENT -> AgentBubble(t, store, layout)
+        Speaker.AGENT -> AgentBubble(t, store, layout, active)
     }
 }
 
 @Composable
-private fun AgentBubble(t: AgentTurn, store: YeopjariStore, layout: Layout) {
+private fun AgentBubble(t: AgentTurn, store: YeopjariStore, layout: Layout, active: ActiveCard?) {
     var showReason by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp, 26.dp, 26.dp, 26.dp)).background(Y.Bg2).border(1.dp, Y.StrokeSoft, RoundedCornerShape(6.dp, 26.dp, 26.dp, 26.dp))
-            .padding(20.dp).animateContentSize(),
+            .padding(20.dp).then(if (layout.restricted) Modifier else Modifier.animateContentSize()),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             t.tier?.let { TierBadge(it, t.latencyMs) }
@@ -222,8 +274,10 @@ private fun AgentBubble(t: AgentTurn, store: YeopjariStore, layout: Layout) {
         }
         if (t.toolCalls.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                t.toolCalls.forEach { c ->
+            // 주행 중에는 스크롤되는 줄 없이 첫 결과 하나만
+            val calls = if (layout.restricted) t.toolCalls.take(1) else t.toolCalls
+            Row(if (layout.restricted) Modifier else Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                calls.forEach { c ->
                     val (icon, color) = when (c.status) {
                         ToolStatus.DONE -> Icons.Rounded.CheckCircle to Y.Ev
                         ToolStatus.PENDING_CONFIRM -> Icons.Rounded.Schedule to Y.Amber
@@ -234,9 +288,11 @@ private fun AgentBubble(t: AgentTurn, store: YeopjariStore, layout: Layout) {
                 }
             }
         }
+        // 주행 중 선택지 카드는 대화 밖에 진행 중인 것 하나만 따로 그린다
         t.cards.filter { !layout.restricted || it is AgentCard.Confirm || it is AgentCard.Game }.forEach { card ->
             Spacer(Modifier.height(14.dp))
-            CardView(card, store, layout)
+            val placeActive = card is AgentCard.PlaceChoices && active != null && active.turnId == t.id && active.card.resolutionId == card.resolutionId
+            CardView(card, store, layout, placeActive = placeActive)
         }
         if (t.privacyNote != null && !layout.restricted) {
             Spacer(Modifier.height(12.dp))
@@ -249,8 +305,9 @@ private fun AgentBubble(t: AgentTurn, store: YeopjariStore, layout: Layout) {
     }
 }
 
+/** @param placeActive 선택지 카드가 지금 진행 중인 되묻기의 것인지 — 아니면 흐리게, 누를 수 없게 */
 @Composable
-private fun CardView(card: AgentCard, store: YeopjariStore, layout: Layout) {
+private fun CardView(card: AgentCard, store: YeopjariStore, layout: Layout, placeActive: Boolean = false) {
     val inner = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Y.Bg3).padding(18.dp)
     when (card) {
         is AgentCard.RoutePlan -> Column(inner) {
@@ -329,6 +386,37 @@ private fun CardView(card: AgentCard, store: YeopjariStore, layout: Layout) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BigButton(card.confirmLabel, Modifier.weight(1f)) { store.confirm(card.actionId) }
                 BigButton("괜찮아요", Modifier.weight(1f), primary = false) { store.decline() }
+            }
+        }
+        // 번호는 카드에 보이는 순서 그대로 — "2번"도 이 목록 기준 (선택 단계 카드는 HUD와 같은 목록)
+        is AgentCard.PlaceChoices -> Column(inner.alpha(if (placeActive) 1f else 0.5f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("들린 말 ‘${card.heard}’", style = MaterialTheme.typography.titleSmall, color = Y.Text2, modifier = Modifier.weight(1f, false), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                card.corrected?.let {
+                    Spacer(Modifier.width(8.dp))
+                    Text("→ $it", style = MaterialTheme.typography.titleSmall, color = Y.Cyan, maxLines = 1)
+                }
+                Spacer(Modifier.weight(1f))
+                Pill(card.stageLabel, color = Y.Periwinkle, bg = Y.Periwinkle.copy(alpha = 0.12f))
+            }
+            card.options.take(3).forEachIndexed { i, o ->
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 76.dp).clip(RoundedCornerShape(18.dp)).background(Y.Bg2)
+                        .then(if (placeActive) Modifier.clickable { store.pickPlace(o.placeId, card.resolutionId) } else Modifier)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val lead = i == 0 && placeActive
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(if (lead) Y.Cyan else Y.Bg4), contentAlignment = Alignment.Center) {
+                        Text("${i + 1}", style = MaterialTheme.typography.titleMedium, color = if (lead) Y.Bg0 else Y.Text1)
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(o.name, style = MaterialTheme.typography.titleMedium, color = Y.Text1, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (!layout.restricted) Text(o.tags.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Y.Text3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Text("${o.percent}%", style = MaterialTheme.typography.titleMedium, color = if (lead) Y.Cyan else Y.Text2)
+                }
             }
         }
         is AgentCard.Game -> {

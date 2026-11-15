@@ -117,11 +117,13 @@ fun DemoPanel(store: YeopjariStore, layout: Layout) {
                 Ctl("시간 배속 ${scale.roundToInt()}x", false) { store.sim.setTimeScale(if (scale >= 40f) 5f else scale * 2) }
             }
             Spacer(Modifier.height(20.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Flag("네트워크 연결", flags.online) { store.sim.setOnline(it) }
                 Flag("반려견 동승", flags.petOnBoard) { store.sim.setPetOnBoard(it) }
                 Flag("아이 동승", flags.kidsOnBoard) { store.sim.setKidsOnBoard(it) }
                 Flag("Pleos SDK 데이터", src == Source.PLEOS_SDK) { store.useSource(if (it) Source.PLEOS_SDK else Source.SIMULATOR) }
+                // HUD 장면의 차선 점선은 기본으로 멈춰 있다 (운전 중 주변 시야의 움직임 = 주의분산). 시연 영상 촬영 때만 켠다.
+                Flag("HUD 도로 움직임 (시연 영상용)", flags.hudRoadMotion) { store.sim.setHudRoadMotion(it) }
             }
         }
     }
